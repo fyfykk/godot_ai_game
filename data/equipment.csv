@@ -1,0 +1,5 @@
+id,name,icon,attack_id,slot_type
+EQ001,AK47,res://assets/vfx/fx_bullet_muzzle.png,bullet,ranged
+EQ002,御剑,res://assets/vfx/fx_melee_slash.png,melee,melee
+EQ003,八卦镜,res://assets/vfx/fx_bullet_proj.png,magic,range
+EQ004,龙咆哮,,roar,range

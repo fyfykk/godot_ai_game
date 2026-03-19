@@ -247,7 +247,7 @@ func _spawn_planned_item(entry: Dictionary, idx: int, p: Node2D):
 		var root3 := get_tree().get_root().get_node("GameRoot")
 		if root3 and root3.has_method("can_drop_collectible"):
 			if not root3.call("can_drop_collectible"):
-				item.kind = "upgrade"
+				item.kind = "upgrade_choice"
 				item.amount = 1
 	get_parent().add_child(item)
 	var base_x: float = global_position.x

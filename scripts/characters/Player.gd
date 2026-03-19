@@ -33,6 +33,11 @@ var gun_aim_dir: Vector2 = Vector2.RIGHT
 var gun_aim_time: float = 0.0
 var gun_aim_duration: float = 0.12
 var gun_aim_lock: bool = false
+var roar_head: Node2D = null
+var shake_time: float = 0.0
+var shake_duration: float = 0.0
+var shake_strength: float = 0.0
+var shake_offset: Vector2 = Vector2.ZERO
 
 func _get_const_float(key: String, default_val: float) -> float:
 	var root := get_tree().get_root().get_node_or_null("GameRoot")
@@ -122,6 +127,7 @@ func _physics_process(delta):
 	_update_attack_visuals(delta, dir)
 	# disable jump
 	move_and_slide()
+	_update_shake(delta)
 	_update_camera_view()
 	if on_ladder and current_ladder != null:
 		var h = current_ladder.get("height")
@@ -147,6 +153,12 @@ func _init_attacks():
 	var mod = BulletAttack.new()
 	mod.setup(self)
 	attack_modules.append(mod)
+	var root := get_tree().get_root().get_node_or_null("GameRoot")
+	if root:
+		if root.has_method("apply_base_attack_stats_for_target"):
+			root.call("apply_base_attack_stats_for_target", "bullet")
+		if root.has_method("apply_collectible_effects_for_target"):
+			root.call("apply_collectible_effects_for_target", "bullet")
 
 func _update_attacks(delta: float):
 	for m in attack_modules:
@@ -200,11 +212,9 @@ func apply_pickup(kind: String, amount: int) -> bool:
 			return bool(root0.call("add_collectible_direct", cid))
 		return false
 	if kind == "bullet_damage":
-		_var_show_choice()
-		return true
+		return _var_show_choice()
 	if kind == "bullet_interval":
-		_var_show_choice()
-		return true
+		return _var_show_choice()
 	if kind == "coin":
 		var root := get_tree().get_root().get_node("GameRoot")
 		if root and root.has_method("add_run_coins"):
@@ -213,38 +223,40 @@ func apply_pickup(kind: String, amount: int) -> bool:
 	if kind == "collectible":
 		var root := get_tree().get_root().get_node("GameRoot")
 		if root and root.has_method("add_collectible"):
-			root.add_collectible(int(amount), self)
-		return true
+			return bool(root.add_collectible(int(amount), self))
+		return false
 	if kind == "collectible_note":
 		var rootn := get_tree().get_root().get_node("GameRoot")
 		if rootn and rootn.has_method("add_collectible_with_note"):
-			rootn.call("add_collectible_with_note", self, 0.5)
-		return true
+			return bool(rootn.call("add_collectible_with_note", self, 0.5))
+		return false
 	if kind == "upgrade_choice":
-		_var_show_choice()
-		return true
+		return _var_show_choice()
+	if kind == "upgrade":
+		return _var_show_choice()
 	if kind == "collectible_boss":
 		var root2 := get_tree().get_root().get_node("GameRoot")
 		if root2 and root2.has_method("add_boss_collectible"):
-			root2.add_boss_collectible(self)
-		return true
+			return bool(root2.add_boss_collectible(self))
+		return false
 	if kind == "attack_melee":
-		_var_show_choice()
-		return true
+		return _var_show_choice()
 	if kind == "attack_magic":
-		_var_show_choice()
-		return true
+		return _var_show_choice()
+	if kind == "attack_roar":
+		return _var_show_choice()
 	if kind == "melee_damage" or kind == "melee_interval" or kind == "melee_range":
-		_var_show_choice()
-		return true
+		return _var_show_choice()
 	if kind == "magic_damage" or kind == "magic_interval" or kind == "magic_radius":
-		_var_show_choice()
-		return true
+		return _var_show_choice()
+	if kind == "roar_damage" or kind == "roar_interval":
+		return _var_show_choice()
 	return true
-func _var_show_choice():
-	var ui := get_tree().get_root().get_node("GameRoot/UI")
-	if ui and ui.has_method("show_upgrade_choices"):
-		ui.show_upgrade_choices(self)
+func _var_show_choice() -> bool:
+	var root := get_tree().get_root().get_node_or_null("GameRoot")
+	if root and root.has_method("request_upgrade_choice"):
+		return bool(root.call("request_upgrade_choice", self))
+	return false
 
 func apply_upgrade_kind(k: String):
 	if k == "bullet_damage":
@@ -262,13 +274,15 @@ func apply_upgrade_kind(k: String):
 					m.upgrade({"interval": max(float(cur_i) - 0.1, 0.1)})
 				return
 	if k == "attack_melee":
+		if not _has_equipped_target("melee"):
+			return
 		for m in attack_modules:
 			if m and m.has_method("get_display_name") and m.get_display_name() == "近战攻击":
 				return
 		var Melee := preload("res://scripts/attacks/MeleeAttack.gd")
-		var mod = Melee.new()
-		mod.setup(self)
-		attack_modules.append(mod)
+		var mod2 = Melee.new()
+		mod2.setup(self)
+		attack_modules.append(mod2)
 		var root := get_tree().get_root().get_node("GameRoot")
 		if root:
 			if root.has_method("apply_base_attack_stats_for_target"):
@@ -278,19 +292,38 @@ func apply_upgrade_kind(k: String):
 		_refresh_attack_visuals()
 		return
 	if k == "attack_magic":
+		if not _has_equipped_target("magic"):
+			return
 		for m in attack_modules:
 			if m and m.has_method("get_display_name") and m.get_display_name() == "范围魔法":
 				return
 		var Magic := preload("res://scripts/attacks/MagicAreaAttack.gd")
-		var mod2 = Magic.new()
-		mod2.setup(self)
-		attack_modules.append(mod2)
+		var mod3 = Magic.new()
+		mod3.setup(self)
+		attack_modules.append(mod3)
 		var root2 := get_tree().get_root().get_node("GameRoot")
 		if root2:
 			if root2.has_method("apply_base_attack_stats_for_target"):
 				root2.call("apply_base_attack_stats_for_target", "magic")
 			if root2.has_method("apply_collectible_effects_for_target"):
 				root2.call("apply_collectible_effects_for_target", "magic")
+		_refresh_attack_visuals()
+		return
+	if k == "attack_roar":
+		if not _has_equipped_target("roar"):
+			return
+		for m in attack_modules:
+			if m and m.has_method("get_display_name") and m.get_display_name() == "龙咆哮":
+				return
+		var Roar := preload("res://scripts/attacks/DragonRoarAttack.gd")
+		var mod4 = Roar.new()
+		mod4.setup(self)
+		attack_modules.append(mod4)
+		_ensure_roar_head()
+		var root3 := get_tree().get_root().get_node("GameRoot")
+		if root3:
+			if root3.has_method("apply_collectible_effects_for_target"):
+				root3.call("apply_collectible_effects_for_target", "roar")
 		_refresh_attack_visuals()
 		return
 	if k == "melee_damage":
@@ -335,6 +368,76 @@ func apply_upgrade_kind(k: String):
 				if cur_r != null:
 					m.upgrade({"radius": float(cur_r) + 8.0})
 				return
+	if k == "roar_damage":
+		for m in attack_modules:
+			if m and m.has_method("get_display_name") and m.get_display_name() == "龙咆哮":
+				var cur = m.get("damage")
+				if cur != null:
+					m.upgrade({"damage": int(cur) + 1})
+				return
+	if k == "roar_interval":
+		for m in attack_modules:
+			if m and m.has_method("get_display_name") and m.get_display_name() == "龙咆哮":
+				var cur_i = m.get("interval")
+				if cur_i != null:
+					m.upgrade({"interval": max(float(cur_i) - 0.15, 0.6)})
+				return
+
+func _ensure_roar_head():
+	if roar_head != null:
+		return
+	var Head := preload("res://scripts/effects/DragonHead.gd")
+	roar_head = Head.new()
+	add_child(roar_head)
+
+func is_roar_head_ready() -> bool:
+	if roar_head == null:
+		return false
+	if not roar_head.is_inside_tree():
+		return false
+	if roar_head.has_method("is_ready"):
+		return bool(roar_head.call("is_ready"))
+	return false
+
+func get_roar_origin() -> Vector2:
+	if roar_head and roar_head.has_method("get_origin"):
+		return roar_head.call("get_origin")
+	return global_position
+
+func trigger_screen_shake(strength: float = 10.0, duration: float = 0.2):
+	shake_strength = max(shake_strength, strength)
+	shake_duration = max(shake_duration, duration)
+	shake_time = shake_duration
+
+func trigger_roar_anim():
+	if roar_head and roar_head.has_method("trigger_roar"):
+		roar_head.call("trigger_roar")
+
+func get_roar_head() -> Node2D:
+	return roar_head
+
+func _update_shake(delta: float):
+	if shake_time <= 0.0:
+		shake_offset = Vector2.ZERO
+		return
+	shake_time = max(shake_time - delta, 0.0)
+	var t: float = 1.0 - (shake_time / max(shake_duration, 0.001))
+	var amp: float = shake_strength * (1.0 - t)
+	var ang: float = randf() * TAU
+	shake_offset = Vector2(cos(ang), sin(ang)) * amp
+	if shake_time <= 0.0:
+		shake_offset = Vector2.ZERO
+
+func _has_equipped_target(target: String) -> bool:
+	var eq_store := get_tree().get_root().get_node_or_null("EquipmentStore")
+	var eq_cfg := get_tree().get_root().get_node_or_null("EquipmentConfig")
+	if eq_store == null or eq_cfg == null:
+		return false
+	for item_id in eq_store.equipped_items:
+		var rec: Dictionary = eq_cfg.get_equipment_by_id(String(item_id))
+		if String(rec.get("attack_id", "")) == target:
+			return true
+	return false
 
 func has_attack(name: String) -> bool:
 	for m in attack_modules:
@@ -423,6 +526,7 @@ func _update_camera_view():
 	var max_x: float = width_w - 80.0
 	var desired_center_x: float = clamp(global_position.x, min_x + half_w, max_x - half_w)
 	cam.position = Vector2(desired_center_x - global_position.x, desired_center_y - global_position.y)
+	cam.offset = shake_offset
 
 func _refresh_visual_alignment():
 	var cs: CollisionShape2D = $CollisionShape2D

@@ -42,50 +42,89 @@ var editor_level_close_button: Button
 var help_overlay: ColorRect
 var help_panel: PanelContainer
 var help_close_button: Button
+var redeem_dialog: ConfirmationDialog
+var redeem_input: LineEdit
 
 func _ready():
 	meta_store = MetaStoreScript.new()
 	meta_store.load()
 	cheat_settings = CheatSettingsScript.new()
 	cheat_settings.load()
+	var menu_center := CenterContainer.new()
+	menu_center.name = "MenuCenter"
+	menu_center.layout_mode = 1
+	menu_center.anchors_preset = 15
+	menu_center.anchor_left = 0.0
+	menu_center.anchor_top = 0.0
+	menu_center.anchor_right = 1.0
+	menu_center.anchor_bottom = 1.0
+	menu_center.offset_left = 0
+	menu_center.offset_top = 0
+	menu_center.offset_right = 0
+	menu_center.offset_bottom = 0
+	menu_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	menu_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	add_child(menu_center)
+	var menu_box := VBoxContainer.new()
+	menu_box.name = "MenuList"
+	menu_box.layout_mode = 2
+	menu_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	menu_box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	menu_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	menu_box.add_theme_constant_override("separation", 16)
+	menu_center.add_child(menu_box)
+	var title := $Title
+	if title:
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if title.get_parent() != menu_box:
+			title.get_parent().remove_child(title)
+			menu_box.add_child(title)
 	var btn := $StartButton
 	if btn:
 		btn.text = "开始游戏"
-		btn.position = Vector2(480, 300)
 		btn.pressed.connect(_on_start_pressed)
+		if btn.get_parent() != menu_box:
+			btn.get_parent().remove_child(btn)
+			menu_box.add_child(btn)
+	var equip_btn := $EquipmentButton
+	if equip_btn:
+		equip_btn.pressed.connect(_on_equipment_pressed)
+		if equip_btn.get_parent() != menu_box:
+			equip_btn.get_parent().remove_child(equip_btn)
+			menu_box.add_child(equip_btn)
+	var redeem_btn := Button.new()
+	menu_box.add_child(redeem_btn)
+	redeem_btn.text = "兑换码"
+	redeem_btn.z_index = 10
+	redeem_btn.pressed.connect(_on_redeem_pressed)
 	_build_level_dialog()
 	_build_editor_dialog()
 	_build_editor_level_dialog()
 	_build_help_dialog()
 	_build_cheat_panel()
 	var editor := Button.new()
-	add_child(editor)
+	menu_box.add_child(editor)
 	editor.text = "地图编辑"
-	editor.position = Vector2(480, 360)
 	editor.z_index = 10
 	editor.pressed.connect(_on_editor_pressed)
 	var codex := Button.new()
-	add_child(codex)
+	menu_box.add_child(codex)
 	codex.text = "收藏品图鉴"
-	codex.position = Vector2(480, 400)
 	codex.z_index = 10
 	codex.pressed.connect(_on_codex_pressed)
 	var save := Button.new()
-	add_child(save)
+	menu_box.add_child(save)
 	save.text = "显示存档路径"
-	save.position = Vector2(480, 440)
 	save.z_index = 10
 	save.pressed.connect(_on_save_path_pressed)
 	var clear := Button.new()
-	add_child(clear)
-	clear.text = "清理收藏品记录"
-	clear.position = Vector2(480, 480)
+	menu_box.add_child(clear)
+	clear.text = "清理本地记录"
 	clear.z_index = 10
 	clear.pressed.connect(_on_clear_collectibles_pressed)
 	var help := Button.new()
-	add_child(help)
+	menu_box.add_child(help)
 	help.text = "帮助"
-	help.position = Vector2(480, 520)
 	help.z_index = 10
 	help.pressed.connect(_on_help_pressed)
 	UIFontScript.apply_tree(get_tree().get_root())
@@ -102,6 +141,64 @@ func _input(event):
 func _on_start_pressed():
 	_refresh_level_buttons()
 	_show_level_dialog()
+
+func _on_equipment_pressed():
+	get_tree().change_scene_to_file("res://scenes/EquipmentEditor.tscn")
+
+func _on_redeem_pressed():
+	if redeem_dialog == null:
+		_build_redeem_dialog()
+	redeem_input.text = ""
+	redeem_dialog.popup_centered()
+	redeem_input.grab_focus()
+
+func _build_redeem_dialog():
+	redeem_dialog = ConfirmationDialog.new()
+	redeem_dialog.title = "兑换码"
+	var box = VBoxContainer.new()
+	box.custom_minimum_size = Vector2(360, 0)
+	box.add_theme_constant_override("separation", 8)
+	redeem_dialog.add_child(box)
+	var label = Label.new()
+	label.text = "请输入兑换码"
+	box.add_child(label)
+	redeem_input = LineEdit.new()
+	redeem_input.placeholder_text = "兑换码"
+	box.add_child(redeem_input)
+	var okb = redeem_dialog.get_ok_button()
+	if okb:
+		okb.text = "确定"
+	var cancelb = redeem_dialog.get_cancel_button()
+	if cancelb:
+		cancelb.text = "取消"
+	redeem_dialog.confirmed.connect(_on_redeem_confirmed)
+	add_child(redeem_dialog)
+
+func _on_redeem_confirmed():
+	var code := redeem_input.text.strip_edges().to_lower()
+	if code == "kfcvme50":
+		var store := get_tree().get_root().get_node_or_null("EquipmentStore")
+		if store and store.has_method("add_to_backpack") and store.has_method("has_item"):
+			var already := bool(store.call("has_item", "EQ004"))
+			if already:
+				_show_redeem_result("已拥有：龙咆哮")
+			else:
+				var added := bool(store.call("add_to_backpack", "EQ004"))
+				if added:
+					_show_redeem_result("获得：龙咆哮")
+				else:
+					_show_redeem_result("兑换失败")
+		else:
+			_show_redeem_result("兑换失败")
+	else:
+		_show_redeem_result("兑换码错误")
+
+func _show_redeem_result(msg: String):
+	var dlg := AcceptDialog.new()
+	dlg.title = "兑换码"
+	dlg.dialog_text = msg
+	add_child(dlg)
+	dlg.popup_centered()
 
 func _on_level_pressed(level_num: int):
 	var seed: int = 0
@@ -1072,9 +1169,12 @@ func _on_clear_collectibles_pressed():
 	store.counts = {}
 	store.total = 0
 	store.save()
+	var equip_store := get_tree().get_root().get_node_or_null("EquipmentStore")
+	if equip_store and equip_store.has_method("clear_local"):
+		equip_store.call("clear_local")
 	var dlg := AcceptDialog.new()
 	dlg.title = "开发者功能"
-	dlg.dialog_text = "已清理本地收藏品记录"
+	dlg.dialog_text = "已清理本地收藏品与装备记录"
 	add_child(dlg)
 	dlg.popup_centered()
 

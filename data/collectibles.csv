@@ -5,10 +5,13 @@ C003,法印·扩环I,blue,magic,radius,none,6,8,10,12,16,法印·扩环,2,2
 C007,弹匣·节奏刻I,blue,bullet,interval,none,-0.03,-0.05,-0.07,-0.09,-0.11,弹匣·节奏刻,2,2
 C008,刃域·拓展I,blue,melee,range,none,4,6,8,10,12,刃域·拓展,2,2
 C009,法印·增幅I,blue,magic,damage,none,1,2,3,4,5,法印·增幅,2,2
+C010,龙吼·增幅I,blue,roar,damage,none,1,2,3,4,5,roar_damage,2,2
+C011,龙吼·共鸣I,blue,roar,interval,none,-0.08,-0.1,-0.12,-0.14,-0.16,roar_interval,2,2
 C101,弹匣·节奏刻II,epic,bullet,interval,none,-0.05,-0.08,-0.1,-0.12,-0.15,弹匣·节奏刻,3,3
 C201,战士之徽,red,melee,damage,attack_melee,2,3,4,5,6,sword_red,4,4
 C202,法师之徽,red,magic,damage,attack_magic,2,3,4,5,6,magic_red,4,4
 C203,扩容核心,red,none,none,bag_expand,0,0,0,0,0,背包扩容,4,4
+C204,龙吼之徽,red,roar,damage,attack_roar,2,3,4,5,6,roar_red,4,4
 C004,弹道·拓展I,blue,bullet,range,none,10,14,18,22,26,弹道·拓展,2,2
 C005,刃纹·冷却刻I,blue,melee,interval,none,-0.04,-0.06,-0.08,-0.10,-0.12,刃纹·冷却刻,2,2
 C006,法印·冷却刻I,blue,magic,interval,none,-0.06,-0.08,-0.10,-0.12,-0.14,法印·冷却刻,2,2
@@ -17,6 +20,8 @@ C104,法域·扩环II,epic,magic,radius,none,10,14,18,22,26,法域·扩环,3,3
 C105,弹道·拓展II,epic,bullet,range,none,14,18,22,26,30,弹道·拓展,3,3
 C106,刃纹·冷却刻II,epic,melee,interval,none,-0.06,-0.08,-0.10,-0.12,-0.14,刃纹·冷却刻,3,3
 C107,法印·冷却刻II,epic,magic,interval,none,-0.08,-0.10,-0.12,-0.14,-0.16,法印·冷却刻,3,3
+R304,龙吼·增幅II,epic,roar,damage,none,3,4,5,6,7,roar_damage,3,3
+C108,龙吼·共鸣II,epic,roar,interval,none,-0.12,-0.15,-0.18,-0.2,-0.22,roar_interval,3,3
 R301,弹匣·增幅II,epic,bullet,damage,none,3,4,5,6,7,弹匣·增幅,3,3
 R302,刃纹·增幅II,epic,melee,damage,none,3,4,5,6,7,刃纹·增幅,3,3
 R303,法印·增幅II,epic,magic,damage,none,3,4,5,6,7,法印·增幅,3,3

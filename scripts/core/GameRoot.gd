@@ -28,6 +28,8 @@ var coll_store
 var char_config
 var upg_config
 var gameplay_consts
+var equipment_store
+var equipment_config
 var run_bag: Array[String] = []
 const BAG_GRID_W_DEFAULT: int = 5
 const BAG_GRID_H_DEFAULT: int = 4
@@ -78,6 +80,8 @@ func _ready():
 	upg_config.load_csv()
 	gameplay_consts = ConstScript.new()
 	gameplay_consts.load_csv()
+	equipment_store = get_tree().get_root().get_node_or_null("EquipmentStore")
+	equipment_config = get_tree().get_root().get_node_or_null("EquipmentConfig")
 	max_time = get_const_float("core.run_max_time", max_time)
 	if cheat_blood_moon_time > 0.0:
 		max_time = cheat_blood_moon_time
@@ -201,6 +205,20 @@ func spawn_player():
 	_apply_start_unlocks()
 	_apply_start_effects()
 
+func request_upgrade_choice(p: Node2D) -> bool:
+	return _try_show_upgrade_choice(p)
+
+func _try_show_upgrade_choice(p: Node2D = null) -> bool:
+	var ui := get_node_or_null("UI")
+	if ui == null:
+		return false
+	var target: Node2D = p if p != null else player
+	if target == null:
+		return false
+	if ui.has_method("show_upgrade_choices"):
+		return bool(ui.call("show_upgrade_choices", target))
+	return false
+
 func on_exit():
 	if run_ended:
 		return
@@ -303,21 +321,29 @@ func spend_run_coins(v: int) -> int:
 	var spent: int = min(run_coins, need)
 	run_coins -= spent
 	return spent
-func add_collectible(v: int, p: Node2D):
+func add_collectible(v: int, p: Node2D) -> bool:
 	if p == null:
-		return
+		return false
 	var ui := get_node("UI")
+	if ui and ui.has_method("is_choice_active") and bool(ui.call("is_choice_active")):
+		return false
 	if ui and ui.has_method("show_collectible_choices"):
 		var opts: Array = _random_choices_with_probs(0.04, 0.15, 3)
 		ui.call("show_collectible_choices", p, opts)
+		return true
+	return false
 
-func add_boss_collectible(p: Node2D):
+func add_boss_collectible(p: Node2D) -> bool:
 	if p == null:
-		return
+		return false
 	var ui := get_node("UI")
+	if ui and ui.has_method("is_choice_active") and bool(ui.call("is_choice_active")):
+		return false
 	if ui and ui.has_method("show_collectible_choices"):
 		var opts: Array = _random_choices_with_red_prob(0.2, 3)
 		ui.call("show_collectible_choices", p, opts)
+		return true
+	return false
 func get_run_coins() -> int:
 	return run_coins
 func get_collectibles_count() -> int:
@@ -542,6 +568,9 @@ func _get_available_collectible_ids(include_white: bool) -> Array:
 		var id := String(rec.get("id", ""))
 		if id == "":
 			continue
+		var target := String(rec.get("target", "none"))
+		if target != "none" and not _has_equipped_target(target):
+			continue
 		var rar := String(rec.get("rarity", "blue"))
 		if not include_white and rar == "white":
 			continue
@@ -575,13 +604,17 @@ func get_collectible_choices_with_note_prob(note_prob: float = 0.5) -> Array:
 		base.append(base[rng.randi_range(0, base.size() - 1)])
 	return base
 
-func add_collectible_with_note(p: Node2D, note_prob: float = 0.5):
+func add_collectible_with_note(p: Node2D, note_prob: float = 0.5) -> bool:
 	if p == null:
-		return
+		return false
 	var ui := get_node("UI")
+	if ui and ui.has_method("is_choice_active") and bool(ui.call("is_choice_active")):
+		return false
 	if ui and ui.has_method("show_collectible_choices"):
 		var opts: Array = get_collectible_choices_with_note_prob(note_prob)
 		ui.call("show_collectible_choices", p, opts)
+		return true
+	return false
 
 func _get_collectible_cap(id: String) -> int:
 	var rec: Dictionary = coll_config.get_item(id) if coll_config else {}
@@ -612,6 +645,8 @@ func is_collectible_capped(id: String) -> bool:
 func _apply_collectible_effect(p: Node2D, target: String, typ: String, val: float):
 	if p == null:
 		return
+	if target != "none" and not _has_equipped_target(target):
+		return
 	var mods = p.get("attack_modules")
 	if mods == null:
 		return
@@ -619,7 +654,7 @@ func _apply_collectible_effect(p: Node2D, target: String, typ: String, val: floa
 		if m == null or not m.has_method("get_display_name"):
 			continue
 		var name: String = m.get_display_name()
-		var ok := (target == "bullet" and name == "子弹攻击") or (target == "melee" and name == "近战攻击") or (target == "magic" and name == "范围魔法")
+		var ok := (target == "bullet" and name == "子弹攻击") or (target == "melee" and name == "近战攻击") or (target == "magic" and name == "范围魔法") or (target == "roar" and name == "龙咆哮")
 		if not ok:
 			continue
 		if typ == "damage":
@@ -1216,6 +1251,12 @@ func _apply_collectible_unlock(id: String, unlock: String, p: Node2D, from_store
 		if from_store:
 			_set_bag_grid_size(BAG_GRID_W_EXPANDED, BAG_GRID_H_EXPANDED)
 		return
+	if unlock == "attack_melee" and not _has_equipped_target("melee"):
+		return
+	if unlock == "attack_magic" and not _has_equipped_target("magic"):
+		return
+	if unlock == "attack_roar" and not _has_equipped_target("roar"):
+		return
 	if p and p.has_method("apply_upgrade_kind"):
 		p.apply_upgrade_kind(unlock)
 
@@ -1245,6 +1286,8 @@ func _apply_start_effects():
 		var target := String(rec.get("target", "none"))
 		var typ := String(rec.get("type", "none"))
 		if target == "none" or typ == "none":
+			continue
+		if not _has_equipped_target(target):
 			continue
 		var cnt: int = int(coll_store.get_count(id))
 		if cnt <= 0:
@@ -1325,7 +1368,7 @@ func _player_has_target(p: Node2D, target: String) -> bool:
 	if p == null:
 		return false
 	if p.has_method("has_attack"):
-		var name_map := {"bullet": "子弹攻击", "melee": "近战攻击", "magic": "范围魔法"}
+		var name_map := {"bullet": "子弹攻击", "melee": "近战攻击", "magic": "范围魔法", "roar": "龙咆哮"}
 		var n := String(name_map.get(target, ""))
 		if n != "" and bool(p.call("has_attack", n)):
 			return true
@@ -1336,7 +1379,7 @@ func _player_has_target(p: Node2D, target: String) -> bool:
 		if m == null or not m.has_method("get_display_name"):
 			continue
 		var name: String = m.get_display_name()
-		if (target == "bullet" and name == "子弹攻击") or (target == "melee" and name == "近战攻击") or (target == "magic" and name == "范围魔法"):
+		if (target == "bullet" and name == "子弹攻击") or (target == "melee" and name == "近战攻击") or (target == "magic" and name == "范围魔法") or (target == "roar" and name == "龙咆哮"):
 			return true
 	return false
 
@@ -1350,7 +1393,7 @@ func _player_get_module(p: Node2D, target: String):
 		if m == null or not m.has_method("get_display_name"):
 			continue
 		var name: String = m.get_display_name()
-		if (target == "bullet" and name == "子弹攻击") or (target == "melee" and name == "近战攻击") or (target == "magic" and name == "范围魔法"):
+		if (target == "bullet" and name == "子弹攻击") or (target == "melee" and name == "近战攻击") or (target == "magic" and name == "范围魔法") or (target == "roar" and name == "龙咆哮"):
 			return m
 	return null
 
@@ -1435,14 +1478,11 @@ func get_weighted_upgrade_choices(p: Node2D, n: int = 3) -> Array:
 			var target := String(rec.get("target", "none"))
 			if unlock_key != "none":
 				var need_unlock: bool = true
-				if target == "none":
-					# infer need by id
-					if id == "attack_melee":
-						need_unlock = not _player_has_target(p, "melee")
-					elif id == "attack_magic":
-						need_unlock = not _player_has_target(p, "magic")
-				if need_unlock:
-					candidates.append(id)
+				var unlock_target := _unlock_to_target(id, unlock_key)
+				if unlock_target != "":
+					need_unlock = not _player_has_target(p, unlock_target)
+					if need_unlock and _has_equipped_target(unlock_target):
+						candidates.append(id)
 				continue
 			if target != "none" and _player_has_target(p, target):
 				if not _is_upgrade_capped(p, id):
@@ -1475,7 +1515,27 @@ func get_weighted_upgrade_choices(p: Node2D, n: int = 3) -> Array:
 			res.append("melee_damage")
 		elif _player_has_target(p, "magic") and not _is_upgrade_capped(p, "magic_damage"):
 			res.append("magic_damage")
+		elif _player_has_target(p, "roar") and not _is_upgrade_capped(p, "roar_damage"):
+			res.append("roar_damage")
 	return res
+
+func _unlock_to_target(id: String, unlock_key: String) -> String:
+	if unlock_key == "attack_melee" or id == "attack_melee":
+		return "melee"
+	if unlock_key == "attack_magic" or id == "attack_magic":
+		return "magic"
+	if unlock_key == "attack_roar" or id == "attack_roar":
+		return "roar"
+	return ""
+
+func _has_equipped_target(target: String) -> bool:
+	if equipment_store == null or equipment_config == null:
+		return false
+	for item_id in equipment_store.equipped_items:
+		var rec: Dictionary = equipment_config.get_equipment_by_id(String(item_id))
+		if String(rec.get("attack_id", "")) == target:
+			return true
+	return false
 
 func get_upgrade_weight(id: String) -> float:
 	if upg_config == null:

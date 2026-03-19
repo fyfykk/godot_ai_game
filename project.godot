@@ -15,7 +15,9 @@ config/features=PackedStringArray("4.6")
 
 [autoload]
 
-FontManager="res://scripts/ui/FontManager.gd"
+FontManager="*res://scripts/ui/FontManager.gd"
+EquipmentConfig="*res://scripts/data/EquipmentConfig.gd"
+EquipmentStore="*res://scripts/data/EquipmentStore.gd"
 
 [display]
 

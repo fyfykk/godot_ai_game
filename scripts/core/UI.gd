@@ -53,6 +53,7 @@ var bag_sort_button: Button
 var bag_close_button: Button
 var bag_title: Label
 var bag_hint: Label
+var bag_drag_label: Label
 class ChoiceGridIcon:
 	extends Control
 	var tex: Texture2D
@@ -355,6 +356,12 @@ func _build_bag_ui():
 	bag_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bag_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bag_box.add_child(bag_hint)
+	bag_drag_label = Label.new()
+	bag_drag_label.text = ""
+	bag_drag_label.visible = false
+	bag_drag_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bag_drag_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bag_box.add_child(bag_drag_label)
 	_sync_bag_grid_size()
 	_rebuild_bag_grid()
 
@@ -390,6 +397,9 @@ func _close_bag():
 		return
 	bag_open = false
 	bag_drag_uid = -1
+	if bag_drag_label:
+		bag_drag_label.text = ""
+		bag_drag_label.visible = false
 	if bag_panel:
 		bag_panel.visible = false
 	if overlay_rect:
@@ -581,6 +591,13 @@ func _start_bag_drag(uid: int, pos: Vector2):
 	bag_drag_rot = bag_drag_origin_rot
 	bag_drag_offset = pos - bag_item_nodes[uid].position
 	bag_grid.move_child(bag_item_nodes[uid], bag_grid.get_child_count() - 1)
+	if bag_drag_label:
+		var root := get_tree().get_root().get_node_or_null("GameRoot")
+		var name_txt := String(it.get("id", ""))
+		if root and root.has_method("get_collectible_name"):
+			name_txt = String(root.call("get_collectible_name", String(it.get("id", ""))))
+		bag_drag_label.text = name_txt
+		bag_drag_label.visible = name_txt != ""
 
 func _update_bag_drag(pos: Vector2):
 	if bag_drag_uid < 0 or not bag_item_nodes.has(bag_drag_uid):
@@ -639,10 +656,16 @@ func _reset_bag_drag(uid: int):
 		return
 	bag_item_nodes[uid].position = bag_drag_origin_pos
 	_apply_drag_size(uid, bag_drag_origin_rot)
+	if bag_drag_label:
+		bag_drag_label.text = ""
+		bag_drag_label.visible = false
 
 func _end_bag_drag(pos: Vector2):
 	var uid := bag_drag_uid
 	bag_drag_uid = -1
+	if bag_drag_label:
+		bag_drag_label.text = ""
+		bag_drag_label.visible = false
 	if uid < 0:
 		return
 	if not bag_item_nodes.has(uid):
@@ -778,7 +801,9 @@ func _process(_delta):
 				mini_map.call("set_context", level, p)
 		mini_map.position = Vector2(vp_size.x - mini_map.size.x - 10.0, vp_size.y - mini_map.size.y - 10.0)
 
-func show_upgrade_choices(p: Node2D):
+func show_upgrade_choices(p: Node2D) -> bool:
+	if not _can_open_choice():
+		return false
 	choice_player = p
 	choice_mode = "upgrade"
 	var root := get_tree().get_root().get_node("GameRoot")
@@ -827,6 +852,7 @@ func show_upgrade_choices(p: Node2D):
 		pause_button.visible = false
 		pause_button.disabled = true
 	get_tree().paused = true
+	return true
 
 func _on_choice_pressed(idx: int):
 	if idx >= 0 and idx < choice_options.size():
@@ -986,6 +1012,23 @@ func _update_choice_layout():
 			var icon_size: float = max(48.0, min(card_w, card_h) * 0.45)
 			choice_custom_icons[i].custom_minimum_size = Vector2(icon_size, icon_size)
 		rarity_labels[i].scale = Vector2(1.2, 1.2)
+
+func is_choice_active() -> bool:
+	return choice_panel != null and choice_panel.visible
+
+func _can_open_choice() -> bool:
+	if choice_panel != null and choice_panel.visible:
+		return false
+	if pause_panel != null and pause_panel.visible:
+		return false
+	if overlay_active and get_tree().paused:
+		return false
+	if get_tree().paused:
+		return false
+	var root := get_tree().get_root().get_node_or_null("GameRoot")
+	if root and root.get("input_locked") != null and bool(root.get("input_locked")):
+		return false
+	return true
 
 func _input(event):
 	if event is InputEventKey and event.pressed and not event.echo:

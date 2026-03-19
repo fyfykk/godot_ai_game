@@ -1,0 +1,72 @@
+[gd_scene format=3 uid="uid://bguvj6d7v7d7v"]
+
+[ext_resource type="Script" path="res://scripts/ui/EquipmentEditor.gd" id="1_abcde"]
+
+[node name="EquipmentEditor" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_abcde")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.1, 0.1, 0.1, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+transform_grow_horizontal = 2
+transform_grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "装备编辑"
+alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="EquippedLabel" type="Label" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "已装备"
+
+[node name="EquippedSlots" type="HBoxContainer" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="Slot1" type="Panel" parent="VBoxContainer/HBoxContainer/EquippedSlots"]
+custom_minimum_size = Vector2(140, 140)
+layout_mode = 2
+
+[node name="Slot2" type="Panel" parent="VBoxContainer/HBoxContainer/EquippedSlots"]
+custom_minimum_size = Vector2(140, 140)
+layout_mode = 2
+
+[node name="Slot3" type="Panel" parent="VBoxContainer/HBoxContainer/EquippedSlots"]
+custom_minimum_size = Vector2(140, 140)
+layout_mode = 2
+
+[node name="BackpackLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "装备背包"
+
+[node name="BackpackGrid" type="GridContainer" parent="VBoxContainer"]
+layout_mode = 2
+columns = 5
+
+[node name="BackButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 100.0
+offset_bottom = 60.0
+text = "返回"
+
+[connection signal="pressed" from="BackButton" to="." method="_on_back_button_pressed"]

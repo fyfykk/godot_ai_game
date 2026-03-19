@@ -19,3 +19,140 @@
 - 三选一收藏品背包放不下时掉落在地面
 - 宝箱与背包丢弃掉落物贴地显示
 - 主菜单提供帮助按钮与简洁说明弹窗
+
+## 装备系统
+- 主菜单新增「装备编辑」入口
+- 装备槽位：远程 / 近战 / 范围
+- 装备背包容量：10
+- 装备与背包数据保存在本地存档
+- 装备数据表：data/equipment.csv
+- 兑换码：kfcvme50，可解锁装备「龙咆哮」
+
+## 攻击系统核心设计
+
+本章节详细阐述了游戏中的核心攻击机制、相关强化（Upgrades）和收藏品（Collectibles）的设计。
+
+### 攻击类型与解锁
+
+游戏包含四种核心攻击类型，由 `target` 字段进行标识。
+
+*   **子弹攻击 (`bullet`)**: 默认解锁的远程攻击方式。
+*   **近战攻击 (`melee`)**: 需要通过特定升级或收藏品解锁的近身攻击。
+*   **范围魔法 (`magic`)**: 需要通过特定升级或收藏品解锁的范围效果攻击。
+*   **龙咆哮 (`roar`)**: 需要通过特定升级或收藏品解锁的范围爆发攻击。
+
+**解锁机制:**
+- **近战攻击**: 通过 `upgrades.csv` 或 `collectibles.csv` 中 `unlock` 字段为 `attack_melee` 的项目解锁。
+    - **升级**: `attack_melee` (解锁近战攻击)
+    - **收藏品**: `C201` (战士之徽)
+- **范围魔法**: 通过 `unlock` 字段为 `attack_magic` 的项目解锁。
+    - **升级**: `attack_magic` (解锁范围魔法)
+    - **收藏品**: `C202` (法师之徽)
+- **龙咆哮**: 通过 `unlock` 字段为 `attack_roar` 的项目解锁。
+    - **升级**: `attack_roar` (解锁龙咆哮)
+    - **收藏品**: `C204` (龙吼之徽)
+
+---
+
+### 1. 子弹攻击 (Bullet)
+
+**实现脚本**: `scripts/attacks/BulletAttack.gd`
+
+**核心属性**:
+- `damage`: 伤害
+- `interval`: 攻击间隔 (数值越小，攻速越快)
+- `range`: 子弹射程
+
+**相关升级 (Upgrades)**:
+- `bullet_damage`: 子弹伤害 +1
+- `bullet_interval`: 子弹攻速 + (间隔 -0.1)
+
+**相关收藏品 (Collectibles)**:
+- **伤害 (damage)**:
+    - `C001` (弹匣·增幅I)
+    - `R301` (弹匣·增幅II)
+- **攻击间隔 (interval)**:
+    - `C007` (弹匣·节奏刻I)
+    - `C101` (弹匣·节奏刻II)
+- **射程 (range)**:
+    - `C004` (弹道·拓展I)
+    - `C105` (弹道·拓展II)
+
+---
+
+### 2. 近战攻击 (Melee)
+
+**实现脚本**: `scripts/attacks/MeleeAttack.gd`
+
+**核心属性**:
+- `damage`: 伤害
+- `interval`: 攻击间隔 (数值越小，冷却越短)
+- `range`: 攻击范围
+
+**相关升级 (Upgrades)**:
+- `melee_damage`: 近战伤害 +1
+- `melee_interval`: 近战冷却 - (间隔 -0.1)
+- `melee_range`: 近战范围 +
+
+**相关收藏品 (Collectibles)**:
+- **伤害 (damage)**:
+    - `C002` (刃纹·增幅I)
+    - `R302` (刃纹·增幅II)
+    - `C201` (战士之徽)
+- **攻击间隔 (interval)**:
+    - `C005` (刃纹·冷却刻I)
+    - `C106` (刃纹·冷却刻II)
+- **攻击范围 (range)**:
+    - `C008` (刃域·拓展I)
+    - `C103` (刃域·拓展II)
+
+---
+
+### 3. 范围魔法 (Magic)
+
+**实现脚本**: `scripts/attacks/MagicAreaAttack.gd`
+
+**核心属性**:
+- `damage`: 伤害
+- `interval`: 施法间隔 (数值越小，冷却越短)
+- `radius`: 效果半径
+
+**相关升级 (Upgrades)**:
+- `magic_damage`: 魔法伤害 +1
+- `magic_interval`: 魔法冷却 - (间隔 -0.1)
+- `magic_radius`: 魔法范围 +
+
+**相关收藏品 (Collectibles)**:
+- **伤害 (damage)**:
+    - `C009` (法印·增幅I)
+    - `R303` (法印·增幅II)
+    - `C202` (法师之徽)
+- **施法间隔 (interval)**:
+    - `C006` (法印·冷却刻I)
+    - `C107` (法印·冷却刻II)
+- **效果半径 (radius)**:
+    - `C003` (法印·扩环I)
+    - `C104` (法域·扩环II)
+
+---
+
+### 4. 龙咆哮 (Roar)
+
+**实现脚本**: `scripts/attacks/DragonRoarAttack.gd`
+
+**核心属性**:
+- `damage`: 伤害
+- `interval`: 冷却
+
+**相关升级 (Upgrades)**:
+- `roar_damage`: 龙咆哮伤害 +1
+- `roar_interval`: 龙咆哮冷却 -
+
+**相关收藏品 (Collectibles)**:
+- **伤害 (damage)**:
+    - `C010` (龙吼·增幅I)
+    - `R304` (龙吼·增幅II)
+    - `C204` (龙吼之徽)
+- **冷却 (interval)**:
+    - `C011` (龙吼·共鸣I)
+    - `C108` (龙吼·共鸣II)
