@@ -24,6 +24,9 @@ tools_cache/
 
 # IDE / Trae
 .trae/
+!.trae/
+!.trae/skills/
+!.trae/skills/**/SKILL.md
 .vscode/
 
 # Project Specific
