@@ -1,0 +1,17 @@
+[gd_scene load_steps=1 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/MainMenu.gd" id=1]
+
+[node name="MainMenu" type="Control"]
+script = ExtResource("1")
+layout_mode = 1
+
+[node name="Title" type="Label" parent="."]
+text = "横版2D 原型"
+position = Vector2(480, 240)
+z_index = 10
+
+[node name="StartButton" type="Button" parent="."]
+text = "开始游戏"
+position = Vector2(480, 300)
+z_index = 10

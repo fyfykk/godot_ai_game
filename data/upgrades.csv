@@ -1,0 +1,11 @@
+id,name,target,prop,delta,limit_type,limit_value,weight,rarity,unlock
+bullet_damage,子弹伤害 +1,bullet,damage,1,max,10,100,blue,none
+bullet_interval,子弹攻速 +,bullet,interval,-0.1,min,0.3,100,blue,none
+melee_damage,近战伤害 +1,melee,damage,1,max,12,100,blue,none
+melee_interval,近战冷却 -,melee,interval,-0.1,min,0.4,100,blue,none
+melee_range,近战范围 +,melee,range,4,max,120,100,blue,none
+magic_damage,魔法伤害 +1,magic,damage,1,max,10,100,blue,none
+magic_interval,魔法冷却 -,magic,interval,-0.1,min,0.5,100,blue,none
+magic_radius,魔法范围 +,magic,radius,8,max,160,100,blue,none
+attack_melee,解锁近战攻击,none,none,0,none,0,10,epic,attack_melee
+attack_magic,解锁范围魔法,none,none,0,none,0,10,epic,attack_magic

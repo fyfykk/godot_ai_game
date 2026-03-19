@@ -1,0 +1,37 @@
+# Godot 4 specific
+.godot/
+*.import
+*.translation
+export_presets.cfg
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build / Binaries
+build/
+*.exe
+*.pck
+*.wasm
+*.js
+*.html
+
+# Tools / Cache
+tools_cache/
+*.pid
+
+# IDE / Trae
+.trae/
+.vscode/
+
+# Project Specific
+Godot_v4.6.1-stable_win64.exe/
+cheats.cfg
+progress.cfg
+custom_maps.json
+base_maps.json
+server.crt
+server.key
+server.pfx

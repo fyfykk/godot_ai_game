@@ -1,0 +1,4 @@
+role,max_hp,damage,bullet_damage,melee_damage,magic_damage,speed
+player,100,0,3,4,3,180
+enemy,8,2,0,0,0,120
+boss,1200,20,0,0,0,170
