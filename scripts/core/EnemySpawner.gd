@@ -3,6 +3,7 @@ extends Node2D
 @export var interval: float = 2.0
 @export var limit: int = 99
 @export var enemy_scene: PackedScene
+@export var enemy_scenes: Array[PackedScene] = []
 @export var boss_scene: PackedScene
 var base_interval: float = 2.0
 
@@ -62,7 +63,8 @@ func _process(delta):
 	if timer >= eff_interval:
 		timer = 0.0
 		var cur: int = get_tree().get_nodes_in_group("enemies").size()
-		if cur < limit and enemy_scene:
+		var scenes := _get_spawn_scenes()
+		if cur < limit and scenes.size() > 0:
 			var root := get_tree().get_root().get_node("GameRoot")
 			var ratio: float = 0.0
 			if root and root.has_method("get_game_time") and root.has_method("get_max_time"):
@@ -71,8 +73,27 @@ func _process(delta):
 			var can_spawn: int = max(limit - cur, 0)
 			var count: int = min(pack, can_spawn)
 			var base_pos: Vector2 = _pick_spawn_pos(false)
+			var first_idx: int = 0
+			var second_idx: int = 0
+			if count >= 2 and scenes.size() >= 2:
+				first_idx = rng.randi_range(0, scenes.size() - 1)
+				second_idx = rng.randi_range(0, scenes.size() - 1)
+				if second_idx == first_idx:
+					second_idx = (second_idx + 1) % scenes.size()
 			for i in range(count):
-				var e = enemy_scene.instantiate()
+				var scene_to_use: PackedScene = scenes[0]
+				if scenes.size() == 1:
+					scene_to_use = scenes[0]
+				elif count >= 2 and scenes.size() >= 2:
+					if i == 0:
+						scene_to_use = scenes[first_idx]
+					elif i == 1:
+						scene_to_use = scenes[second_idx]
+					else:
+						scene_to_use = scenes[rng.randi_range(0, scenes.size() - 1)]
+				else:
+					scene_to_use = scenes[rng.randi_range(0, scenes.size() - 1)]
+				var e = scene_to_use.instantiate()
 				get_parent().add_child(e)
 				var off: Vector2 = Vector2(rng.randf_range(spawn_x_offset_min, spawn_x_offset_max), 0.0)
 				var new_pos: Vector2 = base_pos + off
@@ -86,7 +107,10 @@ func _process(delta):
 				new_pos.x = clamp(new_pos.x, min_x, max_x)
 				e.global_position = new_pos
 				var root_cfg := get_tree().get_root().get_node("GameRoot")
-				if root_cfg and root_cfg.has_method("get_character_value") and e.has_method("set"):
+				var use_globals: bool = true
+				if e and e.has_method("get") and e.get("use_global_stats") != null:
+					use_globals = bool(e.get("use_global_stats"))
+				if use_globals and root_cfg and root_cfg.has_method("get_character_value") and e.has_method("set"):
 					var ehp = root_cfg.call("get_character_value", "enemy", "max_hp", e.get("max_hp"))
 					var edmg = root_cfg.call("get_character_value", "enemy", "damage", e.get("damage"))
 					var espd = root_cfg.call("get_character_value", "enemy", "speed", e.get("speed"))
@@ -117,6 +141,15 @@ func _effective_interval() -> float:
 			return max(base_interval * post_interval_factor, post_interval_min)
 		return max(base_interval * (1.0 - 0.6 * ratio), interval_min)
 	return interval
+
+func _get_spawn_scenes() -> Array[PackedScene]:
+	var scenes: Array[PackedScene] = []
+	for s in enemy_scenes:
+		if s:
+			scenes.append(s)
+	if scenes.size() == 0 and enemy_scene:
+		scenes.append(enemy_scene)
+	return scenes
 
 func _pick_spawn_pos(nearest_layer_only: bool = false) -> Vector2:
 	var level = get_parent()

@@ -1,6 +1,6 @@
 extends Node2D
 
-@export var life: float = 1.1
+@export var life: float = 1.0
 @export var scale_factor: float = 1.0
 
 var t: float = 0.0

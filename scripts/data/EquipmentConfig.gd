@@ -1,6 +1,7 @@
 extends Node
 
 const EQUIPMENT_CSV_PATH = "res://data/equipment.csv"
+const EQUIPMENT_PACKED_PATH = "res://data/packed/equipment.json"
 
 var equipment_data: Dictionary = {}
 
@@ -8,22 +9,69 @@ func _ready():
     load_equipment_data()
 
 func load_equipment_data():
-    var file = FileAccess.open(EQUIPMENT_CSV_PATH, FileAccess.READ)
-    if not file:
-        print("Error: Could not open equipment CSV file.")
+    equipment_data.clear()
+    if _should_use_packed(EQUIPMENT_CSV_PATH, EQUIPMENT_PACKED_PATH):
+        if _load_from_json(EQUIPMENT_PACKED_PATH):
+            return
+    if _load_from_csv(EQUIPMENT_CSV_PATH):
+        _write_packed(EQUIPMENT_PACKED_PATH)
         return
+    print("Error: Could not open equipment data.")
 
+func _load_from_csv(path: String) -> bool:
+    var file = FileAccess.open(path, FileAccess.READ)
+    if not file:
+        return false
     var headers = file.get_csv_line()
     while not file.eof_reached():
         var line = file.get_csv_line()
         if line.size() != headers.size():
             continue
-
         var entry = {}
         for i in range(headers.size()):
             entry[headers[i]] = line[i]
+        var id := String(entry.get("id", ""))
+        if id != "":
+            equipment_data[id] = entry
+    file.close()
+    return equipment_data.size() > 0
 
-        equipment_data[entry["id"]] = entry
+func _load_from_json(path: String) -> bool:
+    var f := FileAccess.open(path, FileAccess.READ)
+    if f == null:
+        return false
+    var text := f.get_as_text()
+    f.close()
+    var data = JSON.parse_string(text)
+    if data is Array:
+        for rec_i in data:
+            if rec_i is Dictionary:
+                var rec: Dictionary = rec_i
+                var id := String(rec.get("id", ""))
+                if id != "":
+                    equipment_data[id] = rec
+    return equipment_data.size() > 0
+
+func _write_packed(path: String):
+    var dir := DirAccess.open("res://")
+    if dir:
+        dir.make_dir_recursive("data/packed")
+    var arr: Array = []
+    for k in equipment_data.keys():
+        arr.append(equipment_data[k])
+    var f := FileAccess.open(path, FileAccess.WRITE)
+    if f:
+        f.store_string(JSON.stringify(arr))
+        f.close()
+
+func _should_use_packed(csv_path: String, packed_path: String) -> bool:
+    if not FileAccess.file_exists(packed_path):
+        return false
+    if not FileAccess.file_exists(csv_path):
+        return true
+    var csv_mtime: int = int(FileAccess.get_modified_time(csv_path))
+    var packed_mtime: int = int(FileAccess.get_modified_time(packed_path))
+    return packed_mtime >= csv_mtime
 
 func get_equipment_by_id(id: String) -> Dictionary:
     return equipment_data.get(id, {})

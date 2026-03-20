@@ -13,6 +13,7 @@ var text_label: Label
 var bar_width: float = 0.0
 var bar_height: float = 0.0
 var auto_offset: Vector2 = Vector2.ZERO
+var last_scale: Vector2 = Vector2.ONE
 
 func _ready():
 	z_index = 50
@@ -46,6 +47,8 @@ func _process(_delta):
 	queue_redraw()
 
 func _draw():
+	if not _should_draw():
+		return
 	var center := _get_center()
 	var origin := center - Vector2(bar_width * 0.5, bar_height * 0.5)
 	var full_rect := Rect2(origin, Vector2(bar_width, bar_height))
@@ -163,9 +166,28 @@ func _apply_ui_scale():
 	if cam:
 		var z := cam.zoom
 		if z.x > 0.0 and z.y > 0.0:
-			scale = Vector2(1.0 / z.x, 1.0 / z.y)
+			var target := Vector2(1.0 / z.x, 1.0 / z.y)
+			if target.x <= 4.0 and target.y <= 4.0:
+				scale = target
+				last_scale = target
+				return
+			scale = last_scale
 			return
-	scale = Vector2.ONE
+	scale = last_scale
+
+func _should_draw() -> bool:
+	if owner == null:
+		return false
+	var vp := get_viewport().get_visible_rect().size
+	if vp.x <= 0.0 or vp.y <= 0.0:
+		return false
+	var sx: float = abs(float(scale.x))
+	var sy: float = abs(float(scale.y))
+	if bar_width * sx > vp.x * 1.5:
+		return false
+	if bar_height * sy > vp.y * 0.6:
+		return false
+	return true
 
 func get_top_y() -> float:
 	var center_world := to_global(_get_center())

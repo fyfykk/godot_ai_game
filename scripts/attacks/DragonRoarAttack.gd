@@ -3,7 +3,7 @@ extends AttackModule
 var damage: int = 10
 var interval: float = 4.2
 var cooldown: float = 0.0
-var vfx_life: float = 1.5
+var vfx_life: float = 1.0
 var root_ref = null
 
 func _get_const_float(key: String, default_val: float) -> float:
@@ -98,4 +98,4 @@ func get_display_name() -> String:
 	return "龙咆哮"
 
 func get_display_stats() -> Dictionary:
-	return {"伤害": damage, "冷却": interval}
+	return {"伤害": damage, "冷却": interval, "范围": "全屏"}

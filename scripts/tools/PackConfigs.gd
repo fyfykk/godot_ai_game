@@ -12,6 +12,7 @@ func _pack_all():
 	_pack_upgrades()
 	_pack_characters()
 	_pack_gameplay_constants()
+	_pack_equipment()
 
 func _pack_collectibles():
 	var f := FileAccess.open("res://data/collectibles.csv", FileAccess.READ)
@@ -126,6 +127,25 @@ func _pack_gameplay_constants():
 			arr.append({"category": cat, "key": key, "value": val})
 	f.close()
 	_write_json("res://data/packed/gameplay_constants.json", arr)
+
+func _pack_equipment():
+	var f := FileAccess.open("res://data/equipment.csv", FileAccess.READ)
+	if f == null:
+		return
+	var headers := f.get_csv_line()
+	var arr: Array = []
+	while not f.eof_reached():
+		var line := f.get_csv_line()
+		if line.size() != headers.size():
+			continue
+		var rec: Dictionary = {}
+		for i in range(headers.size()):
+			rec[headers[i]] = line[i]
+		var id := String(rec.get("id", ""))
+		if id != "":
+			arr.append(rec)
+	f.close()
+	_write_json("res://data/packed/equipment.json", arr)
 
 func _write_json(path: String, data):
 	var f := FileAccess.open(path, FileAccess.WRITE)

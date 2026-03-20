@@ -728,14 +728,14 @@ func on_bag_grid_changed():
 
 func _process(_delta):
 	var players := get_tree().get_nodes_in_group("player")
-	var hp_txt := "HP:-"
+	var hp_txt := "-"
 	if players.size() > 0:
 		var p := players[0]
 		var v = p.get("hp")
 		if v != null:
-			hp_txt = "HP:%d" % int(v)
+			hp_txt = "%d" % int(v)
 	var enemies := get_tree().get_nodes_in_group("enemies").size()
-	label.text = "HP %s  Enemies %d" % [hp_txt, enemies]
+	label.text = "HP:%s  Enemies %d" % [hp_txt, enemies]
 	var root := get_tree().get_root().get_node("GameRoot")
 	var vp_size := get_viewport().get_visible_rect().size
 	if overlay_rect:

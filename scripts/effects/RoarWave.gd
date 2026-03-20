@@ -3,7 +3,7 @@ extends Node2D
 @export var max_radius: float = 360.0
 @export var thickness: float = 6.0
 @export var color: Color = Color(0.55, 0.9, 1.0, 0.7)
-@export var life: float = 0.9
+@export var life: float = 1.0
 @export var rings: int = 2
 @export var noise_strength: float = 0.08
 @export var white_mix: float = 0.35

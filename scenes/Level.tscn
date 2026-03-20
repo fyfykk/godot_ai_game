@@ -1,10 +1,12 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/core/Level.gd" id=1]
 [ext_resource type="Script" path="res://scripts/core/LevelGenerator.gd" id=2]
 [ext_resource type="Script" path="res://scripts/core/EnemySpawner.gd" id=3]
 [ext_resource type="PackedScene" path="res://scenes/Enemy.tscn" id=4]
 [ext_resource type="Script" path="res://scripts/world/Exit.gd" id=5]
+[ext_resource type="PackedScene" path="res://scenes/EnemyFast.tscn" id=6]
+[ext_resource type="PackedScene" path="res://scenes/EnemyBrute.tscn" id=7]
 
 [node name="Level" type="Node2D"]
 script = ExtResource("1")
@@ -24,5 +26,6 @@ script = ExtResource("5")
 [node name="EnemySpawner" type="Node2D" parent="."]
 script = ExtResource("3")
 enemy_scene = ExtResource("4")
+enemy_scenes = [ExtResource("4"), ExtResource("6"), ExtResource("7")]
 interval = 2.0
-limit = 6
+limit = 99
