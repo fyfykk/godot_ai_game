@@ -36,6 +36,7 @@ const BAG_GRID_H_DEFAULT: int = 4
 const BAG_GRID_W_EXPANDED: int = 6
 const BAG_GRID_H_EXPANDED: int = 6
 const BAG_EXPAND_UNLOCK: String = "bag_expand"
+const RUN_TICKET_ID: String = "ticket"
 var bag_grid_w: int = BAG_GRID_W_DEFAULT
 var bag_grid_h: int = BAG_GRID_H_DEFAULT
 var bag_items: Array[Dictionary] = []
@@ -233,6 +234,9 @@ func on_exit():
 			if not counts.has(id):
 				counts[id] = 0
 			counts[id] = int(counts[id]) + 1
+		if not counts.has(RUN_TICKET_ID):
+			counts[RUN_TICKET_ID] = 0
+		counts[RUN_TICKET_ID] = int(counts[RUN_TICKET_ID]) + 1
 		var txt := "到达出口，胜利！\n本局获得的收藏品："
 		success_dialog.dialog_text = ""
 		_update_collectible_dialog(success_dialog, counts, "", txt)
@@ -282,7 +286,8 @@ func _on_success_confirmed():
 	run_bag.clear()
 	if run_level_index > 0:
 		meta_store.unlock_level(run_level_index + 1)
-		meta_store.save()
+	meta_store.add_gacha_tickets(1)
+	meta_store.save()
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
 
@@ -675,12 +680,16 @@ func _apply_collectible_effect(p: Node2D, target: String, typ: String, val: floa
 				m.upgrade({"radius": float(cur_rd) + float(val)})
 
 func get_collectible_name(id: String) -> String:
+	if id == RUN_TICKET_ID:
+		return "抽奖券"
 	var rec: Dictionary = coll_config.get_item(id)
 	if rec == null or rec.size() == 0:
 		return id
 	return String(rec["name"])
 
 func get_collectible_rarity(id: String) -> String:
+	if id == RUN_TICKET_ID:
+		return "blue"
 	var rec: Dictionary = coll_config.get_item(id)
 	if rec == null or rec.size() == 0:
 		return ""
@@ -689,6 +698,8 @@ func get_collectible_rarity(id: String) -> String:
 func get_collectible_icon_texture(id: String, w: int, h: int) -> Texture2D:
 	if id == "":
 		return null
+	if id == RUN_TICKET_ID:
+		return _build_ticket_icon_texture(w, h)
 	var key := "%s_%d_%d" % [id, w, h]
 	if bag_icon_cache.has(key):
 		return bag_icon_cache[key]
@@ -700,6 +711,39 @@ func get_collectible_icon_texture(id: String, w: int, h: int) -> Texture2D:
 	var tex := _build_collectible_icon(icon_key, rar, w, h, gw, gh)
 	bag_icon_cache[key] = tex
 	return tex
+
+func _build_ticket_icon_texture(w: int, h: int) -> Texture2D:
+	var tw: int = max(1, w)
+	var th: int = max(1, h)
+	var img := Image.create(tw, th, false, Image.FORMAT_RGBA8)
+	var base := Color(0.25, 0.55, 1.0, 1.0)
+	var dark := Color(0.12, 0.28, 0.6, 1.0)
+	var light := Color(0.7, 0.88, 1.0, 1.0)
+	for y in range(th):
+		for x in range(tw):
+			var border := x == 0 or y == 0 or x == tw - 1 or y == th - 1
+			if border:
+				img.set_pixel(x, y, dark)
+			else:
+				img.set_pixel(x, y, base)
+	var cut_r: float = min(tw, th) * 0.18
+	var cy: float = th * 0.5
+	var left_cx: float = 0.0
+	var right_cx: float = float(tw - 1)
+	for y in range(th):
+		for x in range(tw):
+			var dl: float = sqrt((float(x) - left_cx) * (float(x) - left_cx) + (float(y) - cy) * (float(y) - cy))
+			var dr: float = sqrt((float(x) - right_cx) * (float(x) - right_cx) + (float(y) - cy) * (float(y) - cy))
+			if dl < cut_r or dr < cut_r:
+				img.set_pixel(x, y, Color(0, 0, 0, 0))
+	var stripe_h: int = max(2, int(round(th * 0.2)))
+	var stripe_y: int = int(round(th * 0.2))
+	for y in range(stripe_h):
+		for x in range(2, tw - 2):
+			var py := stripe_y + y
+			if py >= 0 and py < th:
+				img.set_pixel(x, py, light)
+	return ImageTexture.create_from_image(img)
 
 func get_collectible_icon_texture_filled(id: String, w: int, h: int) -> Texture2D:
 	if id == "":

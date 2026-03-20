@@ -214,47 +214,6 @@ func _build_collectible_icon_plain(icon_key: String, rarity: String, w: int, h: 
 	_draw_icon_art(img, icon_key, ax, ay, art_cell, base)
 	return ImageTexture.create_from_image(img)
 
-func _build_collectible_icon_texture(icon_key: String, rarity: String, w: int, h: int, grid_w: int, grid_h: int) -> Texture2D:
-	var tw: int = max(1, w)
-	var th: int = max(1, h)
-	var img := Image.create(tw, th, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	var base: Color = RarityScript.color(rarity)
-	var bg1 := base.darkened(0.45)
-	var bg2 := base.darkened(0.25)
-	var line := base.lightened(0.1)
-	var edge := Color(0.05, 0.05, 0.07, 1.0)
-	var gw: int = int(max(1, grid_w))
-	var gh: int = int(max(1, grid_h))
-	var pad: int = max(2, int(min(tw, th) * 0.08))
-	var cell: int = int(floor(min(float(tw - pad * 2) / float(gw), float(th - pad * 2) / float(gh))))
-	if cell < 2:
-		cell = 2
-	var grid_px_w: int = cell * gw
-	var grid_px_h: int = cell * gh
-	var gx0: int = int((tw - grid_px_w) / 2)
-	var gy0: int = int((th - grid_px_h) / 2)
-	_draw_grid_background(img, gx0, gy0, gw, gh, cell, bg1, bg2, line, edge)
-	var logical: int = 16
-	var art_cell: int = int(floor(min(float(grid_px_w), float(grid_px_h)) / float(logical)))
-	if art_cell < 1:
-		art_cell = 1
-	var art_w: int = logical * art_cell
-	var art_h: int = logical * art_cell
-	var ax: int = gx0 + int((grid_px_w - art_w) / 2)
-	var ay: int = gy0 + int((grid_px_h - art_h) / 2)
-	_draw_icon_art(img, icon_key, ax, ay, art_cell, base)
-	return ImageTexture.create_from_image(img)
-
-func _draw_grid_background(img: Image, x0: int, y0: int, gw: int, gh: int, cell: int, c1: Color, c2: Color, line: Color, edge: Color):
-	for gy in range(gh):
-		for gx in range(gw):
-			var px := x0 + gx * cell
-			var py := y0 + gy * cell
-			var fill := c1 if ((gx + gy) % 2) == 0 else c2
-			_fill_rect(img, px, py, cell, cell, fill)
-			_stroke_rect(img, px, py, cell, cell, line)
-	_stroke_rect(img, x0, y0, gw * cell, gh * cell, edge)
 
 func _draw_icon_art(img: Image, icon_key: String, ox: int, oy: int, s: int, rarity_col: Color):
 	var key := icon_key.to_lower()
@@ -493,33 +452,6 @@ func _icon_badge(key: String) -> String:
 		return "bolt"
 	return ""
 
-func _fill_rect(img: Image, x: int, y: int, w: int, h: int, col: Color):
-	for yy in range(h):
-		for xx in range(w):
-			var px := x + xx
-			var py := y + yy
-			if px >= 0 and py >= 0 and px < img.get_width() and py < img.get_height():
-				img.set_pixel(px, py, col)
-
-func _stroke_rect(img: Image, x: int, y: int, w: int, h: int, col: Color):
-	for xx in range(w):
-		var px := x + xx
-		var py1 := y
-		var py2 := y + h - 1
-		if px >= 0 and px < img.get_width():
-			if py1 >= 0 and py1 < img.get_height():
-				img.set_pixel(px, py1, col)
-			if py2 >= 0 and py2 < img.get_height():
-				img.set_pixel(px, py2, col)
-	for yy in range(h):
-		var py := y + yy
-		var px1 := x
-		var px2 := x + w - 1
-		if py >= 0 and py < img.get_height():
-			if px1 >= 0 and px1 < img.get_width():
-				img.set_pixel(px1, py, col)
-			if px2 >= 0 and px2 < img.get_width():
-				img.set_pixel(px2, py, col)
 
 func _draw_rect_px(img: Image, ox: int, oy: int, s: int, x: int, y: int, w: int, h: int, col: Color):
 	for yy in range(h):

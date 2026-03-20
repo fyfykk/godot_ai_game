@@ -28,13 +28,33 @@ func _ready():
 
 func _physics_process(delta):
 	if target != null and is_instance_valid(target):
-		dir = (target.global_position - global_position).normalized()
+		if _is_target_alive(target):
+			dir = (target.global_position - global_position).normalized()
+		else:
+			target = null
 	global_position += dir.normalized() * speed * delta
 	if sprite:
 		sprite.rotation = dir.angle()
 	lifetime -= delta
 	if lifetime <= 0.0:
 		queue_free()
+
+func _is_target_alive(t: Node2D) -> bool:
+	var dying: bool = false
+	if t.has_method("get"):
+		var raw_dying = t.get("is_dying")
+		if raw_dying is bool:
+			dying = raw_dying
+	if dying:
+		return false
+	var hp_val: int = 1
+	if t.has_method("get"):
+		var raw_hp = t.get("hp")
+		if raw_hp is int:
+			hp_val = raw_hp
+	if hp_val <= 0:
+		return false
+	return true
 
 func _on_body_entered(b):
 	if b and b.has_method("take_damage"):
