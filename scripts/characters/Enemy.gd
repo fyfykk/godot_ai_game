@@ -93,6 +93,10 @@ func _ready():
 	if hb and hb.has_method("set"):
 		hb.set("fill_color", Color(1.0, 0.2, 0.2, 1.0))
 		hb.set("back_color", Color(0, 0, 0, 0.6))
+		hb.visible = false
+		hb.set_process(false)
+		hb.set_physics_process(false)
+		call_deferred("_activate_health_bar")
 	# boss visual tweak
 	if is_boss:
 		var poly: Polygon2D = $Poly
@@ -116,6 +120,15 @@ func _ready():
 	_refresh_visual_alignment()
 	_add_outline()
 	_sync_visual_facing()
+
+func _activate_health_bar():
+	var hb: Node2D = get_node_or_null("HealthBar") as Node2D
+	if hb and not is_dying:
+		if hb.has_method("_apply_ui_scale"):
+			hb.call("_apply_ui_scale")
+		hb.set_process(true)
+		hb.set_physics_process(true)
+		hb.visible = true
 
 func _physics_process(delta):
 	if is_dying:

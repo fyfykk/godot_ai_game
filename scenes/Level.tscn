@@ -28,4 +28,4 @@ script = ExtResource("3")
 enemy_scene = ExtResource("4")
 enemy_scenes = [ExtResource("4"), ExtResource("6"), ExtResource("7")]
 interval = 2.0
-limit = 99
+limit = 20

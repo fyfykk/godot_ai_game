@@ -1036,11 +1036,15 @@ func _input(event):
 		if root and root.get("input_locked") != null and bool(root.get("input_locked")):
 			return
 		if bag_open:
-			if event.keycode == KEY_B:
+			if event.keycode == KEY_ESCAPE or event.keycode == KEY_B:
 				_close_bag()
 				return
 			if event.keycode == KEY_R:
 				_rotate_drag_item()
+				return
+		if pause_panel and pause_panel.visible:
+			if event.keycode == KEY_ESCAPE:
+				_on_pause_resume()
 				return
 		if choice_panel.visible:
 			if event.keycode == KEY_1:

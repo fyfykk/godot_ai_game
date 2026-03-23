@@ -31,6 +31,8 @@ func _ready():
 	_update_metrics()
 	_update_auto_offset()
 	_update_label_position()
+	_apply_ui_scale()
+	queue_redraw()
 
 func _process(_delta):
 	_apply_ui_scale()
@@ -178,6 +180,12 @@ func _apply_ui_scale():
 func _should_draw() -> bool:
 	if owner == null:
 		return false
+	if owner is Node:
+		var n := owner as Node
+		if not n.is_inside_tree():
+			return false
+		if n.is_queued_for_deletion():
+			return false
 	var vp := get_viewport().get_visible_rect().size
 	if vp.x <= 0.0 or vp.y <= 0.0:
 		return false
