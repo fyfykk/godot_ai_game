@@ -2,11 +2,14 @@ extends AttackModule
 
 var damage: int = 1
 var interval: float = 0.8
-var range: float = 150.0
+var attack_range: float = 150.0
 var cooldown: float = 0.0
 
 var bullet_scene: PackedScene = preload("res://scenes/Bullet.tscn")
+var bullet_script: Script = preload("res://scripts/combat/Bullet.gd")
 var root_ref = null
+var query_shape: CircleShape2D = null
+var query_params: PhysicsShapeQueryParameters2D = null
 
 func _get_const_float(key: String, default_val: float) -> float:
 	if root_ref and root_ref.has_method("get_const_float"):
@@ -23,7 +26,13 @@ func setup(_owner: Node2D):
 	root_ref = _owner.get_tree().get_root().get_node_or_null("GameRoot") if _owner else null
 	damage = _get_const_int("attack.bullet_damage", damage)
 	interval = _get_const_float("attack.bullet_interval", interval)
-	range = _get_const_float("attack.bullet_range", range)
+	attack_range = _get_const_float("attack.bullet_range", attack_range)
+	if query_shape == null:
+		query_shape = CircleShape2D.new()
+	if query_params == null:
+		query_params = PhysicsShapeQueryParameters2D.new()
+		query_params.shape = query_shape
+		query_params.collision_mask = 2
 
 func update(delta: float, owner: Node2D):
 	if not enabled or owner == null:
@@ -38,13 +47,14 @@ func update(delta: float, owner: Node2D):
 
 func _find_target(owner: Node2D) -> Node2D:
 	var space: PhysicsDirectSpaceState2D = owner.get_world_2d().direct_space_state
-	var shape: CircleShape2D = CircleShape2D.new()
-	shape.radius = range
-	var params: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
-	params.shape = shape
-	params.transform = Transform2D(0.0, owner.global_position)
-	params.collision_mask = 2
-	var res: Array = space.intersect_shape(params, 32)
+	if query_shape == null or query_params == null:
+		query_shape = CircleShape2D.new()
+		query_params = PhysicsShapeQueryParameters2D.new()
+		query_params.shape = query_shape
+		query_params.collision_mask = 2
+	query_shape.radius = attack_range
+	query_params.transform = Transform2D(0.0, owner.global_position)
+	var res: Array = space.intersect_shape(query_params, 32)
 	var best: Node2D = null
 	var best_d: float = INF
 	for r in res:
@@ -58,16 +68,18 @@ func _find_target(owner: Node2D) -> Node2D:
 
 func _perform_attack(owner: Node2D, target: Node2D):
 	if bullet_scene:
-		var b = bullet_scene.instantiate()
-		owner.get_tree().get_root().add_child(b)
+		var b: Node = bullet_script.call("fetch", bullet_scene)
+		var root := owner.get_tree().get_root()
+		if b.get_parent() == null:
+			root.add_child(b)
+		elif b.get_parent() != root:
+			b.reparent(root)
+		var muzzle_pos: Vector2 = owner.global_position
 		if owner and owner.has_method("get_muzzle_position"):
-			b.global_position = owner.call("get_muzzle_position")
-		else:
-			b.global_position = owner.global_position
-		b.damage = damage
-		b.target = target
-		var aim_dir: Vector2 = (target.global_position - b.global_position).normalized()
-		b.dir = aim_dir
+			muzzle_pos = owner.call("get_muzzle_position")
+		var aim_dir: Vector2 = (target.global_position - muzzle_pos).normalized()
+		if b and b.has_method("reset"):
+			b.call("reset", muzzle_pos, damage, target, aim_dir)
 		if owner and owner.has_method("set_gun_aim"):
 			owner.call("set_gun_aim", aim_dir)
 
@@ -79,8 +91,8 @@ func upgrade(params: Dictionary):
 	if params.has("interval"):
 		interval = float(params["interval"])
 	if params.has("range"):
-		range = float(params["range"])
+		attack_range = float(params["range"])
 func get_display_name() -> String:
 	return "子弹攻击"
 func get_display_stats() -> Dictionary:
-	return {"伤害": damage, "攻速": interval, "范围": range}
+	return {"伤害": damage, "攻速": interval, "范围": attack_range}

@@ -32,8 +32,8 @@ func _process(delta):
 		var dist: float = radius * tt
 		sp.position = Vector2(cos(ang), sin(ang)) * dist
 		sp.rotation = ang + tt * 1.4
-		var scale: float = 0.5 + tt * 0.8
-		sp.scale = Vector2(scale, scale)
+		var pulse_scale: float = 0.5 + tt * 0.8
+		sp.scale = Vector2(pulse_scale, pulse_scale)
 		sp.modulate = Color(1, 1, 1, 1.0)
 	queue_redraw()
 	if t > life:
@@ -72,11 +72,12 @@ func _build_talisman_texture(w: int, h: int) -> Texture2D:
 	_outline_rect(img, 0, 0, w, h, edge)
 	_rect(img, 1, 1, w - 2, 2, red)
 	_rect(img, 1, h - 3, w - 2, 2, red)
-	_rect(img, int(w / 2), 3, 1, h - 6, ink)
-	_rect(img, int(w / 2) - 2, 5, 4, 1, ink)
-	_rect(img, int(w / 2) - 1, 8, 3, 1, ink)
-	_rect(img, int(w / 2) - 2, 11, 4, 1, ink)
-	_rect(img, int(w / 2) - 1, 13, 3, 1, ink)
+	var mid_x: int = int(floor(float(w) * 0.5))
+	_rect(img, mid_x, 3, 1, h - 6, ink)
+	_rect(img, mid_x - 2, 5, 4, 1, ink)
+	_rect(img, mid_x - 1, 8, 3, 1, ink)
+	_rect(img, mid_x - 2, 11, 4, 1, ink)
+	_rect(img, mid_x - 1, 13, 3, 1, ink)
 	return ImageTexture.create_from_image(img)
 
 func _rect(img: Image, x: int, y: int, w: int, h: int, col: Color):

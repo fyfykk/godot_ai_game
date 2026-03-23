@@ -378,12 +378,12 @@ func _rebuild_editor_level_buttons():
 		editor_level_list_container.move_child(editor_level_close_button, editor_level_list_container.get_child_count() - 1)
 
 func _on_level_pressed(level_num: int):
-	var seed: int = 0
+	var level_seed: int = 0
 	var base_count: int = level_seeds.size()
 	if level_num > 0 and level_num <= base_count:
-		seed = int(level_seeds[level_num - 1])
+		level_seed = int(level_seeds[level_num - 1])
 	owner.get_tree().set_meta("run_mode", "game")
-	owner.get_tree().set_meta("level_seed", seed)
+	owner.get_tree().set_meta("level_seed", level_seed)
 	owner.get_tree().set_meta("level_index", level_num)
 	if level_num > base_count:
 		owner.get_tree().set_meta("use_custom_map_index", level_num - base_count - 1)
@@ -402,13 +402,13 @@ func _on_editor_new_pressed():
 	owner.get_tree().change_scene_to_file("res://scenes/GameRoot.tscn")
 
 func _on_editor_level_pressed(level_num: int):
-	var seed: int = 0
+	var level_seed: int = 0
 	var base_count: int = level_seeds.size()
 	if level_num > 0 and level_num <= base_count:
-		seed = int(level_seeds[level_num - 1])
+		level_seed = int(level_seeds[level_num - 1])
 	owner.get_tree().set_meta("run_mode", "editor")
 	owner.get_tree().set_meta("editor_new", false)
-	owner.get_tree().set_meta("level_seed", seed)
+	owner.get_tree().set_meta("level_seed", level_seed)
 	owner.get_tree().set_meta("level_index", level_num)
 	if level_num > base_count:
 		owner.get_tree().set_meta("editor_custom_index", level_num - base_count - 1)

@@ -41,7 +41,7 @@ func _draw():
 		return
 	var hw: float = size.x
 	var hh: float = size.y
-	var start_x: float = 0 if facing > 0 else -hw
+	var start_x: float = 0.0 if facing > 0 else -hw
 	var rect := Rect2(Vector2(start_x, -hh), Vector2(hw, hh * 2.0))
 	draw_rect(rect, color, true)
 

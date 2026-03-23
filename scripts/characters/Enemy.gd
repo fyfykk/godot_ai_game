@@ -45,6 +45,12 @@ var death_frame_start: int = 5
 var death_frame_count: int = 2
 var FirePillarFxScript := preload("res://scripts/effects/FirePillarFX.gd")
 var CrowFlyFxScript := preload("res://scripts/effects/CrowFlyFX.gd")
+static var texture_cache: Dictionary = {}
+var platforms_cache: Array = []
+var ladders_cache: Array = []
+var doors_cache: Array = []
+var cache_next_ms: int = 0
+var cache_interval_ms: int = 250
 
 func _get_const_float(key: String, default_val: float) -> float:
 	var root := get_tree().get_root().get_node_or_null("GameRoot")
@@ -131,6 +137,7 @@ func _activate_health_bar():
 		hb.visible = true
 
 func _physics_process(delta):
+	_refresh_spatial_caches()
 	if is_dying:
 		_update_death(delta)
 		return
@@ -564,7 +571,10 @@ func _update_death(delta: float):
 		queue_free()
 
 func _find_closed_door_in_range():
-	var doors: Array = get_tree().get_nodes_in_group("door")
+	var doors: Array = doors_cache
+	if doors.size() == 0:
+		_refresh_spatial_caches()
+		doors = doors_cache
 	var best: Node2D = null
 	var best_d: float = INF
 	for d in doors:
@@ -592,7 +602,10 @@ func _find_closed_door_in_range():
 func _get_blocking_door_between(target_node: Node2D) -> Node2D:
 	if target_node == null:
 		return null
-	var doors: Array = get_tree().get_nodes_in_group("door")
+	var doors: Array = doors_cache
+	if doors.size() == 0:
+		_refresh_spatial_caches()
+		doors = doors_cache
 	if doors.size() == 0:
 		return null
 	var ax: float = global_position.x
@@ -622,7 +635,9 @@ func _get_blocking_door_between(target_node: Node2D) -> Node2D:
 	return null
 
 func _get_ladders() -> Array:
-	return get_tree().get_nodes_in_group("ladder")
+	if ladders_cache.size() == 0:
+		_refresh_spatial_caches()
+	return ladders_cache
 
 func _ladder_covers_y(lad: Node2D, y: float, margin: float = 2.0) -> bool:
 	if lad == null:
@@ -749,17 +764,36 @@ func _platform_top(p) -> float:
 	return y - hh
 
 func _get_platforms() -> Array:
+	if platforms_cache.size() == 0:
+		_refresh_spatial_caches()
+	return platforms_cache
+
+func _refresh_spatial_caches():
+	var now_ms := Time.get_ticks_msec()
+	if now_ms < cache_next_ms and platforms_cache.size() > 0:
+		return
 	var level := get_parent()
 	if level and level.has_node("Platforms"):
-		return level.get_node("Platforms").get_children()
-	return []
+		platforms_cache = level.get_node("Platforms").get_children()
+	else:
+		platforms_cache = []
+	ladders_cache = get_tree().get_nodes_in_group("ladder")
+	doors_cache = get_tree().get_nodes_in_group("door")
+	cache_next_ms = now_ms + cache_interval_ms
 
 func _build_enemy_sheet(kind: String, w: int, h: int) -> Texture2D:
+	var key := "%s:%d:%d" % [kind, w, h]
+	if texture_cache.has(key):
+		return texture_cache[key]
+	var tex: Texture2D = null
 	if kind == "vampire":
-		return _build_fast_sheet(w, h)
-	if kind == "demon":
-		return _build_brute_sheet(w, h)
-	return _build_jiangshi_sheet(w, h)
+		tex = _build_fast_sheet(w, h)
+	elif kind == "demon":
+		tex = _build_brute_sheet(w, h)
+	else:
+		tex = _build_jiangshi_sheet(w, h)
+	texture_cache[key] = tex
+	return tex
 
 func _build_jiangshi_sheet(w: int, h: int) -> Texture2D:
 	var frames: int = 7

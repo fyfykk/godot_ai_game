@@ -184,7 +184,7 @@ func _build_help_icon(kind: String, w: int, h: int) -> Texture2D:
 				var ny: float = (float(y) - float(th) * 0.5 + 0.5) / (float(th) * 0.5)
 				inside = nx * nx + ny * ny <= 1.0
 			if kind == "collectible":
-				inside = abs(float(x - tw / 2)) + abs(float(y - th / 2)) <= float(min(tw, th) / 2)
+				inside = abs(float(x - tw * 0.5)) + abs(float(y - th * 0.5)) <= float(min(tw, th) * 0.5)
 			if kind == "door":
 				inside = x >= 5 and x <= 12 and y >= 3 and y <= 15
 			if kind == "chest":
@@ -206,7 +206,7 @@ func _build_help_icon(kind: String, w: int, h: int) -> Texture2D:
 			if not inside:
 				img.set_pixel(x, y, Color(0, 0, 0, 0))
 				continue
-			var col := c1 if ((x / 2 + y / 2) % 2) == 0 else c2
+			var col := c1 if ((int(floor(float(x) * 0.5)) + int(floor(float(y) * 0.5))) % 2) == 0 else c2
 			var near_edge: bool = x == 0 or y == 0 or x == tw - 1 or y == th - 1
 			if kind == "door":
 				c1 = Color(0.55, 0.32, 0.16, 1.0)

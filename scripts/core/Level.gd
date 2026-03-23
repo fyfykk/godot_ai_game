@@ -41,6 +41,7 @@ var editor_holding_original_wall_parent: Node = null
 var editor_holding_original_wall_pos: Vector2 = Vector2.ZERO
 var editor_holding_original_wall_sprite_pos: Vector2 = Vector2.ZERO
 var LocalPathsScript := preload("res://scripts/data/LocalPaths.gd")
+static var texture_cache: Dictionary = {}
 
 func _get_const_float(key: String, default_val: float) -> float:
 	var root := get_tree().get_root().get_node_or_null("GameRoot")
@@ -1773,6 +1774,9 @@ func _boundaries_insert_sorted(arr: Array, v: float):
 		arr.append(v)
 
 func _build_ground_texture(w: int, h: int) -> Texture2D:
+	var key := "ground:%d:%d" % [w, h]
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var tw: int = max(w, 1)
 	var th: int = max(h, 1)
 	var img := Image.create(tw, th, false, Image.FORMAT_RGBA8)
@@ -1789,9 +1793,14 @@ func _build_ground_texture(w: int, h: int) -> Texture2D:
 			elif y >= th - 2:
 				col = c_bot
 			img.set_pixel(x, y, col)
-	return ImageTexture.create_from_image(img)
+	var tex := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex
+	return tex
 
 func _build_wall_texture(w: int, h: int, border: bool) -> Texture2D:
+	var key := "wall:%d:%d:%s" % [w, h, str(border)]
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var tw: int = max(w, 1)
 	var th: int = max(h, 1)
 	var img := Image.create(tw, th, false, Image.FORMAT_RGBA8)
@@ -1805,9 +1814,14 @@ func _build_wall_texture(w: int, h: int, border: bool) -> Texture2D:
 			if x == 0 or x == tw - 1:
 				col = edge
 			img.set_pixel(x, y, col)
-	return ImageTexture.create_from_image(img)
+	var tex2 := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex2
+	return tex2
 
 func _build_exit_texture(w: int, h: int) -> Texture2D:
+	var key := "exit:%d:%d" % [w, h]
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var tw: int = max(w, 1)
 	var th: int = max(h, 1)
 	var img := Image.create(tw, th, false, Image.FORMAT_RGBA8)
@@ -1829,7 +1843,9 @@ func _build_exit_texture(w: int, h: int) -> Texture2D:
 				elif ((x + y) % 3) == 0:
 					col = glow2
 			img.set_pixel(x, y, col)
-	return ImageTexture.create_from_image(img)
+	var tex3 := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex3
+	return tex3
 func get_top_margin() -> float:
 	return top_margin
 func is_top_layer_locked() -> bool:

@@ -72,10 +72,10 @@ func _ready():
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0, 0, 0, 0.1)
 		style.border_color = RarityScript.color(rar_key)
-		style.border_width_top = 2.0
-		style.border_width_bottom = 2.0
-		style.border_width_left = 2.0
-		style.border_width_right = 2.0
+		style.border_width_top = 2
+		style.border_width_bottom = 2
+		style.border_width_left = 2
+		style.border_width_right = 2
 		card.add_theme_stylebox_override("panel", style)
 		var hb := HBoxContainer.new()
 		hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -88,9 +88,9 @@ func _ready():
 		var right := VBoxContainer.new()
 		right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		right.add_theme_constant_override("separation", 4)
-		var name: Label = Label.new()
-		name.text = "%s（%s）" % [String(rec["name"]), RarityScript.name(rar_key)]
-		right.add_child(name)
+		var name_label: Label = Label.new()
+		name_label.text = "%s（%s）" % [String(rec["name"]), RarityScript.name(rar_key)]
+		right.add_child(name_label)
 		var id: String = String(rec["id"])
 		var cnt: int = int(store.get_count(id))
 		var cnt_box := HBoxContainer.new()
@@ -209,8 +209,8 @@ func _build_collectible_icon_plain(icon_key: String, rarity: String, w: int, h: 
 		art_cell = 1
 	var art_w: int = logical * art_cell
 	var art_h: int = logical * art_cell
-	var ax: int = int((tw - art_w) / 2)
-	var ay: int = int((th - art_h) / 2)
+	var ax: int = int((tw - art_w) * 0.5)
+	var ay: int = int((th - art_h) * 0.5)
 	_draw_icon_art(img, icon_key, ax, ay, art_cell, base)
 	return ImageTexture.create_from_image(img)
 

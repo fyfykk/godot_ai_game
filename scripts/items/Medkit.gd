@@ -2,6 +2,7 @@ extends Area2D
 
 @export var heal_ratio: float = 0.5
 var prompt
+static var texture_cache: Dictionary = {}
 
 func _ready():
 	var cs := CollisionShape2D.new()
@@ -80,6 +81,9 @@ func get_interact_position(_p: Vector2 = Vector2.ZERO) -> Vector2:
 	return global_position
 
 func _build_medkit_texture(w: int, h: int) -> Texture2D:
+	var key := "%d:%d" % [w, h]
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var tw: int = max(w, 1)
 	var th: int = max(h, 1)
 	var img := Image.create(tw, th, false, Image.FORMAT_RGBA8)
@@ -95,4 +99,6 @@ func _build_medkit_texture(w: int, h: int) -> Texture2D:
 			if (x >= tw / 2 - 1 and x <= tw / 2 + 1 and y >= 3 and y <= th - 4) or (y >= th / 2 - 1 and y <= th / 2 + 1 and x >= 3 and x <= tw - 4):
 				col = cross
 			img.set_pixel(x, y, col)
-	return ImageTexture.create_from_image(img)
+	var tex := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex
+	return tex

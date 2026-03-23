@@ -12,6 +12,7 @@ var t: float = 0.0
 var sp: Sprite2D
 var tex: Texture2D
 var start_pos: Vector2 = Vector2.ZERO
+static var texture_cache: Dictionary = {}
 
 func _ready():
 	tex = _build_crow_sheet(14, 10, frame_count)
@@ -50,11 +51,16 @@ func _process(delta):
 		queue_free()
 
 func _build_crow_sheet(w: int, h: int, frames: int) -> Texture2D:
+	var key := "crow:%d:%d:%d" % [w, h, frames]
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var img := Image.create(w * frames, h, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	for i in range(frames):
 		_draw_crow_frame(img, i * w, 0, w, h, i)
-	return ImageTexture.create_from_image(img)
+	var tex2 := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex2
+	return tex2
 
 func _draw_crow_frame(img: Image, ox: int, oy: int, w: int, h: int, idx: int):
 	var body := Color(0.08, 0.08, 0.1, 1.0)

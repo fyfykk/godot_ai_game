@@ -72,7 +72,6 @@ func _build_item_cell(item_id: String, slot_type: String, is_equipped: bool, slo
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	icon_panel.add_child(btn)
-	var name_label = Label.new()
 	var name_bar = _build_name_bar(_get_item_name(item_id))
 	cell.add_child(name_bar)
 	return cell
@@ -87,7 +86,6 @@ func _build_empty_cell() -> Control:
 	icon_panel.custom_minimum_size = Vector2(SLOT_PANEL_SIZE, SLOT_PANEL_SIZE)
 	_apply_slot_panel_style(icon_panel, "")
 	cell.add_child(icon_panel)
-	var name_label = Label.new()
 	var name_bar = _build_name_bar("")
 	cell.add_child(name_bar)
 	return cell

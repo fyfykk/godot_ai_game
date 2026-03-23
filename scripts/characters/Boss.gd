@@ -30,12 +30,17 @@ func _ready():
 			set("speed", 130.0)
 
 func _build_sadako_sheet(w: int, h: int) -> Texture2D:
+	var key := "sadako:%d:%d" % [w, h]
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var frames: int = 5
 	var img := Image.create(w * frames, h, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	for i in range(frames):
 		_draw_sadako_frame(img, i * w, 0, i)
-	return ImageTexture.create_from_image(img)
+	var tex := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex
+	return tex
 
 func _draw_sadako_frame(img: Image, ox: int, oy: int, idx: int):
 	var hair := Color(0.05, 0.05, 0.08, 1.0)

@@ -5,6 +5,8 @@ var interval: float = 2.5
 var radius: float = 80.0
 var cooldown: float = 0.0
 var root_ref = null
+var query_shape: CircleShape2D = null
+var query_params: PhysicsShapeQueryParameters2D = null
 
 func _get_const_float(key: String, default_val: float) -> float:
 	if root_ref and root_ref.has_method("get_const_float"):
@@ -22,6 +24,12 @@ func setup(_owner: Node2D):
 	damage = _get_const_int("attack.magic_damage", damage)
 	interval = _get_const_float("attack.magic_interval", interval)
 	radius = _get_const_float("attack.magic_radius", radius)
+	if query_shape == null:
+		query_shape = CircleShape2D.new()
+	if query_params == null:
+		query_params = PhysicsShapeQueryParameters2D.new()
+		query_params.shape = query_shape
+		query_params.collision_mask = 2
 
 func update(delta: float, owner: Node2D):
 	if not enabled or owner == null:
@@ -34,13 +42,14 @@ func update(delta: float, owner: Node2D):
 
 func _damage_area(owner: Node2D):
 	var space: PhysicsDirectSpaceState2D = owner.get_world_2d().direct_space_state
-	var shape: CircleShape2D = CircleShape2D.new()
-	shape.radius = radius
-	var params: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
-	params.shape = shape
-	params.transform = Transform2D(0.0, owner.global_position)
-	params.collision_mask = 2
-	var res: Array = space.intersect_shape(params, 64)
+	if query_shape == null or query_params == null:
+		query_shape = CircleShape2D.new()
+		query_params = PhysicsShapeQueryParameters2D.new()
+		query_params.shape = query_shape
+		query_params.collision_mask = 2
+	query_shape.radius = radius
+	query_params.transform = Transform2D(0.0, owner.global_position)
+	var res: Array = space.intersect_shape(query_params, 64)
 	for r in res:
 		var n: Node = r.get("collider")
 		if n and n.is_in_group("enemies") and n.has_method("take_damage") and n is Node2D:

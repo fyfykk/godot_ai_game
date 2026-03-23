@@ -47,7 +47,6 @@ func _ready():
 	cheat_ui.build()
 	var menu_center := CenterContainer.new()
 	menu_center.name = "MenuCenter"
-	menu_center.layout_mode = 1
 	menu_center.anchors_preset = 15
 	menu_center.anchor_left = 0.0
 	menu_center.anchor_top = 0.0
@@ -62,7 +61,6 @@ func _ready():
 	add_child(menu_center)
 	var menu_box := VBoxContainer.new()
 	menu_box.name = "MenuList"
-	menu_box.layout_mode = 2
 	menu_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	menu_box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	menu_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -235,8 +233,8 @@ func _on_save_path_pressed():
 	add_child(dlg)
 	dlg.popup_centered()
 func _on_clear_collectibles_pressed():
-	var CollStoreScript := preload("res://scripts/data/CollectiblesStore.gd")
-	var store := CollStoreScript.new()
+	var CollStoreScriptLocal := preload("res://scripts/data/CollectiblesStore.gd")
+	var store := CollStoreScriptLocal.new()
 	store.load()
 	store.counts = {}
 	store.total = 0
@@ -262,11 +260,11 @@ func _build_codex():
 	title.text = "收藏品图鉴"
 	title.position = Vector2(100, 120)
 	add_child(title)
-	var CollConfigScript := preload("res://scripts/data/CollectiblesConfig.gd")
-	var CollStoreScript := preload("res://scripts/data/CollectiblesStore.gd")
-	var config := CollConfigScript.new()
+	var CollConfigScriptLocal := preload("res://scripts/data/CollectiblesConfig.gd")
+	var CollStoreScriptLocal := preload("res://scripts/data/CollectiblesStore.gd")
+	var config := CollConfigScriptLocal.new()
 	config.load_csv()
-	var store := CollStoreScript.new()
+	var store := CollStoreScriptLocal.new()
 	store.load()
 	var vb := VBoxContainer.new()
 	vb.position = Vector2(100, 160)
@@ -274,7 +272,7 @@ func _build_codex():
 	for rec_i in config.items:
 		var rec: Dictionary = rec_i
 		var id: String = String(rec["id"])
-		var name: String = String(rec["name"])
+		var item_name: String = String(rec["name"])
 		var rar: String = String(rec["rarity"])
 		var cnt: int = int(store.get_count(id))
 		var row := HBoxContainer.new()
@@ -287,7 +285,7 @@ func _build_codex():
 		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		row.add_child(icon)
 		var l := Label.new()
-		l.text = "%s（%s） 已获得:%d" % [name, rar, cnt]
+		l.text = "%s（%s） 已获得:%d" % [item_name, rar, cnt]
 		l.modulate = _rarity_color(rar)
 		row.add_child(l)
 		vb.add_child(row)
@@ -311,8 +309,8 @@ func _build_collectible_icon_texture(icon_key: String, rarity: String, w: int, h
 	var c1 := base.lightened(0.2)
 	var c2 := base.darkened(0.2)
 	var edge := Color(0.08, 0.08, 0.1, 1.0)
-	var seed := _icon_hash(icon_key)
-	var mode := seed % 4
+	var icon_seed := _icon_hash(icon_key)
+	var mode := icon_seed % 4
 	for y in range(th):
 		for x in range(tw):
 			var border := x == 0 or y == 0 or x == tw - 1 or y == th - 1
@@ -321,30 +319,30 @@ func _build_collectible_icon_texture(icon_key: String, rarity: String, w: int, h
 				continue
 			var on := false
 			if mode == 0:
-				on = ((x + y + seed) % 2) == 0
+				on = ((x + y + icon_seed) % 2) == 0
 			elif mode == 1:
-				on = ((x / 2 + y) % 2) == 0
+				on = ((int(floor(float(x) * 0.5)) + y) % 2) == 0
 			elif mode == 2:
-				var cx: int = tw / 2
-				var cy: int = th / 2
-				on = abs(x - cx) + abs(y - cy) <= int(min(tw, th) / 3)
+				var cx: int = int(floor(float(tw) * 0.5))
+				var cy: int = int(floor(float(th) * 0.5))
+				on = abs(x - cx) + abs(y - cy) <= int(floor(float(min(tw, th)) / 3.0))
 			else:
 				on = x == y or x == (tw - 1 - y)
 			img.set_pixel(x, y, c1 if on else c2)
 	var mark := base.lightened(0.55)
-	var midx: int = tw / 2
-	var midy: int = th / 2
-	var size: int = int(min(tw, th) / 3)
+	var midx: int = int(floor(float(tw) * 0.5))
+	var midy: int = int(floor(float(th) * 0.5))
+	var mark_size: int = int(floor(float(min(tw, th)) / 3.0))
 	if _icon_has(icon_key, "紫"):
-		_draw_diamond(img, midx, midy, size, mark)
+		_draw_diamond(img, midx, midy, mark_size, mark)
 	if _icon_has(icon_key, "弹"):
-		_draw_circle(img, midx, midy, size, mark)
+		_draw_circle(img, midx, midy, mark_size, mark)
 	elif _icon_has(icon_key, "刃"):
-		_draw_triangle(img, midx, midy, size, mark)
+		_draw_triangle(img, midx, midy, mark_size, mark)
 	elif _icon_has(icon_key, "法"):
-		_draw_ring(img, midx, midy, size, mark)
+		_draw_ring(img, midx, midy, mark_size, mark)
 	if _icon_has(icon_key, "拓") or _icon_has(icon_key, "扩"):
-		_draw_plus(img, midx, midy, size, mark)
+		_draw_plus(img, midx, midy, mark_size, mark)
 	if _icon_has(icon_key, "冷") or _icon_has(icon_key, "速") or _icon_has(icon_key, "节奏"):
 		_draw_stripes(img, mark)
 	return ImageTexture.create_from_image(img)
@@ -358,13 +356,13 @@ func _icon_hash(s: String) -> int:
 func _icon_has(s: String, key: String) -> bool:
 	return s.find(key) >= 0
 
-func _draw_plus(img: Image, cx: int, cy: int, size: int, col: Color):
-	for i in range(-size, size + 1):
+func _draw_plus(img: Image, cx: int, cy: int, arm: int, col: Color):
+	for i in range(-arm, arm + 1):
 		var x := cx + i
 		var y := cy
 		if x >= 1 and x < img.get_width() - 1 and y >= 1 and y < img.get_height() - 1:
 			img.set_pixel(x, y, col)
-	for j in range(-size, size + 1):
+	for j in range(-arm, arm + 1):
 		var x2 := cx
 		var y2 := cy + j
 		if x2 >= 1 and x2 < img.get_width() - 1 and y2 >= 1 and y2 < img.get_height() - 1:
@@ -389,18 +387,18 @@ func _draw_ring(img: Image, cx: int, cy: int, r: int, col: Color):
 				if x >= 1 and x < img.get_width() - 1 and y >= 1 and y < img.get_height() - 1:
 					img.set_pixel(x, y, col)
 
-func _draw_triangle(img: Image, cx: int, cy: int, size: int, col: Color):
-	for y in range(size + 1):
+func _draw_triangle(img: Image, cx: int, cy: int, tri_size: int, col: Color):
+	for y in range(tri_size + 1):
 		var start_x := cx - y
 		var end_x := cx + y
-		var yy := cy - size + y
+		var yy := cy - tri_size + y
 		for x in range(start_x, end_x + 1):
 			if x >= 1 and x < img.get_width() - 1 and yy >= 1 and yy < img.get_height() - 1:
 				img.set_pixel(x, yy, col)
 
-func _draw_diamond(img: Image, cx: int, cy: int, size: int, col: Color):
-	for y in range(-size, size + 1):
-		var row: int = size - abs(y)
+func _draw_diamond(img: Image, cx: int, cy: int, diamond_size: int, col: Color):
+	for y in range(-diamond_size, diamond_size + 1):
+		var row: int = diamond_size - abs(y)
 		for x in range(-row, row + 1):
 			var px := cx + x
 			var py := cy + y

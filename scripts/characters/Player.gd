@@ -38,6 +38,10 @@ var shake_time: float = 0.0
 var shake_duration: float = 0.0
 var shake_strength: float = 0.0
 var shake_offset: Vector2 = Vector2.ZERO
+static var texture_cache: Dictionary = {}
+var interact_candidates_cache: Array = []
+var interact_cache_next_ms: int = 0
+var interact_cache_interval_ms: int = 200
 
 func _get_const_float(key: String, default_val: float) -> float:
 	var root := get_tree().get_root().get_node_or_null("GameRoot")
@@ -166,13 +170,11 @@ func _update_attacks(delta: float):
 			m.update(delta, self)
 
 func _update_interact_target():
-	var candidates := []
-	candidates.append_array(get_tree().get_nodes_in_group("chest"))
-	candidates.append_array(get_tree().get_nodes_in_group("medkit"))
-	candidates.append_array(get_tree().get_nodes_in_group("exit"))
-	candidates.append_array(get_tree().get_nodes_in_group("door"))
-	candidates.append_array(get_tree().get_nodes_in_group("ladder"))
-	candidates.append_array(get_tree().get_nodes_in_group("pickup"))
+	var now_ms := Time.get_ticks_msec()
+	if now_ms >= interact_cache_next_ms or interact_candidates_cache.size() == 0:
+		_refresh_interact_candidates()
+		interact_cache_next_ms = now_ms + interact_cache_interval_ms
+	var candidates := interact_candidates_cache
 	var best: Node2D = null
 	var best_d: float = 1e18
 	var best_x: float = 0.0
@@ -200,6 +202,15 @@ func _update_interact_target():
 					best = c
 					best_x = pos.x
 	interact_target = best
+
+func _refresh_interact_candidates():
+	interact_candidates_cache = []
+	interact_candidates_cache.append_array(get_tree().get_nodes_in_group("chest"))
+	interact_candidates_cache.append_array(get_tree().get_nodes_in_group("medkit"))
+	interact_candidates_cache.append_array(get_tree().get_nodes_in_group("exit"))
+	interact_candidates_cache.append_array(get_tree().get_nodes_in_group("door"))
+	interact_candidates_cache.append_array(get_tree().get_nodes_in_group("ladder"))
+	interact_candidates_cache.append_array(get_tree().get_nodes_in_group("pickup"))
 
 func is_interact_target(n: Node) -> bool:
 	return interact_target == n
@@ -439,9 +450,9 @@ func _has_equipped_target(target: String) -> bool:
 			return true
 	return false
 
-func has_attack(name: String) -> bool:
+func has_attack(attack_name: String) -> bool:
 	for m in attack_modules:
-		if m and m.has_method("get_display_name") and m.get_display_name() == name:
+		if m and m.has_method("get_display_name") and m.get_display_name() == attack_name:
 			return true
 	return false
 func set_on_ladder(v: bool):
@@ -499,19 +510,13 @@ func _update_camera_view():
 	var vp := get_viewport().get_visible_rect().size
 	var level := get_tree().get_root().get_node("GameRoot/Level")
 	var layer_h: float = 80.0
-	var layers_cnt: int = 4
-	var top_margin: float = 0.0
 	var width_w: float = 1024.0
 	if level:
-		if level.has_method("get_top_margin"):
-			top_margin = float(level.call("get_top_margin"))
 		if level.has_node("Generator"):
 			var gen = level.get_node("Generator")
 			if gen and gen.has_method("get"):
 				if gen.get("layer_height") != null:
 					layer_h = float(gen.layer_height)
-				if gen.get("layers") != null:
-					layers_cnt = int(gen.layers)
 				if gen.get("width") != null:
 					width_w = float(gen.width)
 	var target_h: float = layer_h * 1.8
@@ -520,7 +525,6 @@ func _update_camera_view():
 	var view_h: float = target_h
 	var view_w: float = vp.x / zoom_y
 	var half_w: float = view_w * 0.5
-	var layer_idx: int = int(clamp(floor((global_position.y - top_margin) / layer_h), 0.0, float(layers_cnt - 1)))
 	var desired_center_y: float = global_position.y - view_h * (1.0 / 6.0)
 	var min_x: float = 80.0
 	var max_x: float = width_w - 80.0
@@ -597,15 +601,15 @@ func _add_outline():
 		sprite_outline.flip_h = player_sprite.flip_h
 		add_child(sprite_outline)
 		return
-	var poly: Polygon2D = $Poly
-	if poly == null:
+	var poly_node: Polygon2D = $Poly
+	if poly_node == null:
 		return
 	var outline := Polygon2D.new()
-	outline.polygon = poly.polygon
+	outline.polygon = poly_node.polygon
 	outline.color = Color(0, 0, 0, 0.85)
-	outline.z_index = max(poly.z_index - 1, 0)
-	outline.scale = poly.scale * Vector2(1.08, 1.08)
-	outline.position = poly.position
+	outline.z_index = max(poly_node.z_index - 1, 0)
+	outline.scale = poly_node.scale * Vector2(1.08, 1.08)
+	outline.position = poly_node.position
 	add_child(outline)
 
 func _set_visual_color(c: Color):
@@ -774,6 +778,9 @@ func _update_walk_anim(delta: float, dir: float):
 		sprite_outline.frame = player_sprite.frame
 
 func _build_player_sprite_sheet() -> Texture2D:
+	var key := "player_sheet"
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var frame_w: int = 16
 	var frame_h: int = 24
 	var frames: int = 4
@@ -781,16 +788,15 @@ func _build_player_sprite_sheet() -> Texture2D:
 	img.fill(Color(0, 0, 0, 0))
 	for i in range(frames):
 		_draw_player_frame(img, i * frame_w, 0, i)
-	return ImageTexture.create_from_image(img)
+	var tex := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex
+	return tex
 
 func _draw_player_frame(img: Image, ox: int, oy: int, idx: int):
-	var outline := Color(0.05, 0.05, 0.08, 1.0)
 	var robe := Color(0.78, 0.8, 0.92, 1.0)
 	var robe2 := Color(0.65, 0.7, 0.84, 1.0)
-	var trim := Color(0.35, 0.38, 0.5, 1.0)
 	var sash := Color(0.35, 0.1, 0.1, 1.0)
 	var hair := Color(0.1, 0.1, 0.12, 1.0)
-	var skin := Color(0.95, 0.84, 0.72, 1.0)
 	var boot := Color(0.06, 0.06, 0.08, 1.0)
 	var hat := Color(0.88, 0.72, 0.32, 1.0)
 	var hat2 := Color(0.7, 0.56, 0.26, 1.0)
@@ -835,6 +841,9 @@ func _draw_player_frame(img: Image, ox: int, oy: int, idx: int):
 	_rect(img, ox + leg_rx, oy + 20, 2, 2, boot)
 
 func _build_gun_texture(w: int, h: int) -> Texture2D:
+	var key := "gun:%d:%d" % [w, h]
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	var metal := Color(0.08, 0.08, 0.1, 1.0)
@@ -849,9 +858,14 @@ func _build_gun_texture(w: int, h: int) -> Texture2D:
 	_rect(img, 10, 4, 1, 2, dark)
 	_rect(img, 4, 5, 2, 1, dark)
 	_rect(img, 6, 5, 2, 2, wood)
-	return ImageTexture.create_from_image(img)
+	var tex2 := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex2
+	return tex2
 
 func _build_sword_texture(w: int, h: int) -> Texture2D:
+	var key := "sword:%d:%d" % [w, h]
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	var metal := Color(0.75, 0.8, 0.9, 1.0)
@@ -862,9 +876,14 @@ func _build_sword_texture(w: int, h: int) -> Texture2D:
 	_rect(img, 2, 2, 1, 9, glow)
 	_rect(img, 1, 12, 4, 1, dark)
 	_rect(img, 2, 13, 2, 2, wood)
-	return ImageTexture.create_from_image(img)
+	var tex3 := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex3
+	return tex3
 
 func _build_orb_texture(w: int, h: int) -> Texture2D:
+	var key := "orb:%d:%d" % [w, h]
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	var gold := Color(0.95, 0.82, 0.28, 1.0)
@@ -925,7 +944,9 @@ func _build_orb_texture(w: int, h: int) -> Texture2D:
 		if px3 >= 0 and py3 >= 0 and px3 < img.get_width() and py3 < img.get_height():
 			img.set_pixel(px3, py3, gold_dark)
 	img.set_pixel(int(cx), int(cy), red)
-	return ImageTexture.create_from_image(img)
+	var tex4 := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex4
+	return tex4
 
 func _rect(img: Image, x: int, y: int, w: int, h: int, col: Color):
 	for yy in range(h):

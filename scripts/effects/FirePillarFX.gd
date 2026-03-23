@@ -7,6 +7,7 @@ extends Node2D
 var t: float = 0.0
 var sp: Sprite2D
 var tex: Texture2D
+static var texture_cache: Dictionary = {}
 
 func _ready():
 	tex = _build_fire_sheet(8, 22, frame_count)
@@ -30,11 +31,16 @@ func _process(delta):
 		queue_free()
 
 func _build_fire_sheet(w: int, h: int, frames: int) -> Texture2D:
+	var key := "fire:%d:%d:%d" % [w, h, frames]
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var img := Image.create(w * frames, h, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	for i in range(frames):
 		_draw_fire_frame(img, i * w, 0, w, h, i, frames)
-	return ImageTexture.create_from_image(img)
+	var tex2 := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex2
+	return tex2
 
 func _draw_fire_frame(img: Image, ox: int, oy: int, w: int, h: int, idx: int, frames: int):
 	var core := Color(1.0, 0.9, 0.4, 1.0)

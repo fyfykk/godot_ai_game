@@ -7,6 +7,7 @@ extends Area2D
 var prompt
 var pickup_shape: CollisionShape2D
 var pickup_sprite: Sprite2D
+static var texture_cache: Dictionary = {}
 
 func _ready():
 	var cs := CollisionShape2D.new()
@@ -143,6 +144,9 @@ func try_interact(p: Node2D):
 			queue_free()
 
 func _build_pickup_texture(k: String, w: int, h: int) -> Texture2D:
+	var key := "%s:%d:%d" % [k, w, h]
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var tw: int = max(w, 1)
 	var th: int = max(h, 1)
 	var img := Image.create(tw, th, false, Image.FORMAT_RGBA8)
@@ -169,11 +173,14 @@ func _build_pickup_texture(k: String, w: int, h: int) -> Texture2D:
 				var ny: float = (float(y) - float(th) * 0.5 + 0.5) / (float(th) * 0.5)
 				inside = nx * nx + ny * ny <= 1.0
 			elif k == "collectible" or k == "collectible_id" or k == "collectible_boss":
-				inside = abs(float(x - tw / 2)) + abs(float(y - th / 2)) <= float(min(tw, th) / 2)
+				var mid_x: float = float(tw) * 0.5
+				var mid_y: float = float(th) * 0.5
+				var mid_half: float = float(min(tw, th)) * 0.5
+				inside = abs(float(x) - mid_x) + abs(float(y) - mid_y) <= mid_half
 			if not inside:
 				img.set_pixel(x, y, Color(0, 0, 0, 0))
 				continue
-			var col := c1 if ((x / 2 + y / 2) % 2) == 0 else c2
+			var col := c1 if ((int(floor(float(x) * 0.5)) + int(floor(float(y) * 0.5))) % 2) == 0 else c2
 			var near_edge: bool = x == 0 or y == 0 or x == tw - 1 or y == th - 1
 			if not near_edge and k == "coin":
 				var nx_l: float = (float(x - 1) - float(tw) * 0.5 + 0.5) / (float(tw) * 0.5)
@@ -184,9 +191,13 @@ func _build_pickup_texture(k: String, w: int, h: int) -> Texture2D:
 				var ny_c: float = (float(y) - float(th) * 0.5 + 0.5) / (float(th) * 0.5)
 				near_edge = nx_l * nx_l + ny_c * ny_c > 1.0 or nx_r * nx_r + ny_c * ny_c > 1.0 or nx_c * nx_c + ny_u * ny_u > 1.0 or nx_c * nx_c + ny_d * ny_d > 1.0
 			elif not near_edge and (k == "collectible" or k == "collectible_id" or k == "collectible_boss"):
-				var md: float = float(min(tw, th) / 2)
-				near_edge = abs(float((x - 1) - tw / 2)) + abs(float(y - th / 2)) > md or abs(float((x + 1) - tw / 2)) + abs(float(y - th / 2)) > md or abs(float(x - tw / 2)) + abs(float((y - 1) - th / 2)) > md or abs(float(x - tw / 2)) + abs(float((y + 1) - th / 2)) > md
+				var mid_x: float = float(tw) * 0.5
+				var mid_y: float = float(th) * 0.5
+				var md: float = float(min(tw, th)) * 0.5
+				near_edge = abs(float(x - 1) - mid_x) + abs(float(y) - mid_y) > md or abs(float(x + 1) - mid_x) + abs(float(y) - mid_y) > md or abs(float(x) - mid_x) + abs(float(y - 1) - mid_y) > md or abs(float(x) - mid_x) + abs(float(y + 1) - mid_y) > md
 			if near_edge:
 				col = edge
 			img.set_pixel(x, y, col)
-	return ImageTexture.create_from_image(img)
+	var tex := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex
+	return tex

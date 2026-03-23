@@ -2,11 +2,14 @@ extends AttackModule
 
 var damage: int = 2
 var interval: float = 1.2
-var range: float = 28.0
+var attack_range: float = 28.0
 var cooldown: float = 0.0
 var AttackArcScript: Script = preload("res://scripts/combat/AttackArc.gd")
 var SwordWaveScript: Script = preload("res://scripts/effects/SwordWave.gd")
 var root_ref = null
+var query_shape: CircleShape2D = null
+var query_params: PhysicsShapeQueryParameters2D = null
+static var texture_cache: Dictionary = {}
 
 func _get_const_float(key: String, default_val: float) -> float:
 	if root_ref and root_ref.has_method("get_const_float"):
@@ -23,7 +26,13 @@ func setup(_owner: Node2D):
 	root_ref = _owner.get_tree().get_root().get_node_or_null("GameRoot") if _owner else null
 	damage = _get_const_int("attack.melee_damage", damage)
 	interval = _get_const_float("attack.melee_interval", interval)
-	range = _get_const_float("attack.melee_range", range)
+	attack_range = _get_const_float("attack.melee_range", attack_range)
+	if query_shape == null:
+		query_shape = CircleShape2D.new()
+	if query_params == null:
+		query_params = PhysicsShapeQueryParameters2D.new()
+		query_params.shape = query_shape
+		query_params.collision_mask = 2
 
 func update(delta: float, owner: Node2D):
 	if not enabled or owner == null:
@@ -39,13 +48,14 @@ func update(delta: float, owner: Node2D):
 
 func _find_target(owner: Node2D) -> Node2D:
 	var space: PhysicsDirectSpaceState2D = owner.get_world_2d().direct_space_state
-	var shape: CircleShape2D = CircleShape2D.new()
-	shape.radius = range
-	var params: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
-	params.shape = shape
-	params.transform = Transform2D(0.0, owner.global_position)
-	params.collision_mask = 2
-	var res: Array = space.intersect_shape(params, 16)
+	if query_shape == null or query_params == null:
+		query_shape = CircleShape2D.new()
+		query_params = PhysicsShapeQueryParameters2D.new()
+		query_params.shape = query_shape
+		query_params.collision_mask = 2
+	query_shape.radius = attack_range
+	query_params.transform = Transform2D(0.0, owner.global_position)
+	var res: Array = space.intersect_shape(query_params, 16)
 	var best: Node2D = null
 	var best_d: float = INF
 	for r in res:
@@ -65,13 +75,13 @@ func upgrade(params: Dictionary):
 	if params.has("interval"):
 		interval = float(params["interval"])
 	if params.has("range"):
-		range = float(params["range"])
+		attack_range = float(params["range"])
 
 func get_display_name() -> String:
 	return "近战攻击"
 
 func get_display_stats() -> Dictionary:
-	return {"伤害": damage, "攻速": interval, "范围": range}
+	return {"伤害": damage, "攻速": interval, "范围": attack_range}
 
 func _spawn_vfx(owner: Node2D, target: Node2D):
 	var dir: float = sign(target.global_position.x - owner.global_position.x)
@@ -80,9 +90,9 @@ func _spawn_vfx(owner: Node2D, target: Node2D):
 		var slash_tex := _build_half_moon_texture(92, 48)
 		owner.get_tree().get_root().add_child(wave)
 		var start_pos := owner.global_position + Vector2(-8.0 * dir, -6.0)
-		var end_pos := owner.global_position + Vector2(range * 1.35 * dir, -6.0)
-		var s0 := Vector2(range * 1.35, range * 0.9)
-		var s1 := Vector2(range * 2.7, range * 1.45)
+		var end_pos := owner.global_position + Vector2(attack_range * 1.35 * dir, -6.0)
+		var s0 := Vector2(attack_range * 1.35, attack_range * 0.9)
+		var s1 := Vector2(attack_range * 2.7, attack_range * 1.45)
 		wave.set("life", 0.26)
 		wave.set("color", Color(0.65, 1.0, 1.0, 1.0))
 		wave.call("setup", start_pos, end_pos, s0, s1, slash_tex, dir)
@@ -94,12 +104,15 @@ func _spawn_vfx(owner: Node2D, target: Node2D):
 		owner.get_tree().get_root().add_child(arc)
 		arc.z_index = 200
 		arc.set("color", Color(0.55, 0.95, 1.0, 0.9))
-		arc.setup(owner.global_position + Vector2(8.0 * dir, -2.0), dir, Vector2(range * 1.0, range * 0.7))
+		arc.setup(owner.global_position + Vector2(8.0 * dir, -2.0), dir, Vector2(attack_range * 1.0, attack_range * 0.7))
 		arc.rotation = -0.3 * dir
 	if owner and owner.has_method("play_sword_slash"):
 		owner.call("play_sword_slash", dir)
 
 func _build_half_moon_texture(w: int, h: int) -> Texture2D:
+	var key := "half_moon:%d:%d" % [w, h]
+	if texture_cache.has(key):
+		return texture_cache[key]
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	var core := Color(0.65, 0.98, 1.0, 0.9)
@@ -123,4 +136,6 @@ func _build_half_moon_texture(w: int, h: int) -> Texture2D:
 			elif band <= thickness + 2.4:
 				var col2 := Color(edge.r, edge.g, edge.b, edge.a * boost)
 				img.set_pixel(x, y, col2)
-	return ImageTexture.create_from_image(img)
+	var tex := ImageTexture.create_from_image(img)
+	texture_cache[key] = tex
+	return tex
