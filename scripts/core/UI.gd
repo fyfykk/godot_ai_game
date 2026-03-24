@@ -660,7 +660,7 @@ func _reset_bag_drag(uid: int):
 		bag_drag_label.text = ""
 		bag_drag_label.visible = false
 
-func _end_bag_drag(pos: Vector2):
+func _end_bag_drag(_pos: Vector2):
 	var uid := bag_drag_uid
 	bag_drag_uid = -1
 	if bag_drag_label:
@@ -928,11 +928,11 @@ func show_collectible_choices(p: Node2D, ids: Array):
 	var root := get_tree().get_root().get_node("GameRoot")
 	for i in range(choice_buttons.size()):
 		if i < choice_options.size():
-			var name: String = String(choice_options[i])
+			var name_txt: String = String(choice_options[i])
 			var rar: String = ""
 			if root:
 				if root.has_method("get_collectible_name"):
-					name = root.get_collectible_name(choice_options[i])
+					name_txt = root.get_collectible_name(choice_options[i])
 				if root.has_method("get_collectible_rarity"):
 					rar = RarityScript.normalize(root.get_collectible_rarity(choice_options[i]))
 			var sz := Vector2i(1, 1)
@@ -950,7 +950,7 @@ func show_collectible_choices(p: Node2D, ids: Array):
 				choice_custom_boxes[i].visible = true
 				choice_custom_boxes[i].z_index = 2
 			if i < choice_custom_labels.size():
-				choice_custom_labels[i].text = "%d) 收藏品: %s" % [i + 1, name]
+				choice_custom_labels[i].text = "%d) 收藏品: %s" % [i + 1, name_txt]
 			if i < choice_custom_icons.size():
 				choice_custom_icons[i].set_icon(tex, int(sz.x), int(sz.y), RarityScript.color(rar))
 			choice_buttons[i].disabled = false
@@ -1071,9 +1071,9 @@ func _update_attack_list(players: Array):
 		return
 	for m in mods:
 		if m and m.has_method("get_display_name") and m.has_method("get_display_stats"):
-			var name: String = m.get_display_name()
+			var display_name: String = m.get_display_name()
 			var stats: Dictionary = m.get_display_stats()
-			var txt := "%s  " % name
+			var txt := "%s  " % display_name
 			for k in stats.keys():
 				txt += "%s:%s  " % [str(k), str(stats[k])]
 			var l := Label.new()

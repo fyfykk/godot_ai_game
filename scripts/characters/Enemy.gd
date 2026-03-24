@@ -663,18 +663,18 @@ func _is_inside_ladder(lad: Node2D) -> bool:
 	var dy: float = abs(global_position.y - c.y)
 	return dx <= half_w and dy <= half_h
 
-func _pick_ladder_for(target: Node2D) -> Node2D:
+func _pick_ladder_for(target_node: Node2D) -> Node2D:
 	var ladders := _get_ladders()
 	var best: Node2D = null
 	var best_score: float = INF
 	for l in ladders:
 		if l is Node2D:
-			if _ladder_reachable_from_current(l as Node2D, target) and _ladder_moves_towards_target(l as Node2D, target):
+			if _ladder_reachable_from_current(l as Node2D, target_node) and _ladder_moves_towards_target(l as Node2D, target_node):
 				var lx: float = (l as Node2D).global_position.x
 				var cx: float = global_position.x
-				var px: float = target.global_position.x if target else lx
+				var px: float = target_node.global_position.x if target_node else lx
 				var cy: float = (l as Node2D).global_position.y
-				var py: float = target.global_position.y if target else cy
+				var py: float = target_node.global_position.y if target_node else cy
 				var score: float = abs(cy - py) * 0.7 + abs(lx - px) * 0.2 + abs(lx - cx) * 0.1
 				if score < best_score:
 					best_score = score
@@ -684,28 +684,28 @@ func _pick_ladder_for(target: Node2D) -> Node2D:
 			if l is Node2D:
 				var lx2: float = (l as Node2D).global_position.x
 				var cx2: float = global_position.x
-				var px2: float = target.global_position.x if target else lx2
+				var px2: float = target_node.global_position.x if target_node else lx2
 				var cy2: float = (l as Node2D).global_position.y
-				var py2: float = target.global_position.y if target else cy2
+				var py2: float = target_node.global_position.y if target_node else cy2
 				var score2: float = abs(cy2 - py2) * 0.7 + abs(lx2 - px2) * 0.2 + abs(lx2 - cx2) * 0.1
 				if score2 < best_score:
 					best_score = score2
 					best = l as Node2D
 	return best
 
-func _ladder_moves_towards_target(lad: Node2D, target: Node2D) -> bool:
-	if lad == null or target == null:
+func _ladder_moves_towards_target(lad: Node2D, target_node: Node2D) -> bool:
+	if lad == null or target_node == null:
 		return true
 	var cy: float = lad.global_position.y
 	var ey: float = global_position.y
-	var py: float = target.global_position.y
+	var py: float = target_node.global_position.y
 	if py > ey + 1.0:
 		return cy > ey
 	if py < ey - 1.0:
 		return cy < ey
 	return true
 
-func _ladder_reachable_from_current(lad: Node2D, target: Node2D, tol: float = 12.0) -> bool:
+func _ladder_reachable_from_current(lad: Node2D, target_node: Node2D, tol: float = 12.0) -> bool:
 	if lad == null:
 		return false
 	var h = lad.get("height")
@@ -717,9 +717,9 @@ func _ladder_reachable_from_current(lad: Node2D, target: Node2D, tol: float = 12
 	var bot_y: float = cy + half
 	var ey: float = global_position.y
 	var cur_top: float = _current_floor_top()
-	if target == null:
+	if target_node == null:
 		return abs(cur_top - top_y) <= tol or abs(cur_top - bot_y) <= tol
-	var py: float = target.global_position.y
+	var py: float = target_node.global_position.y
 	if py < ey - 1.0:
 		return abs(cur_top - bot_y) <= tol
 	if py > ey + 1.0:
@@ -857,23 +857,6 @@ func _draw_jiangshi_frame(img: Image, ox: int, oy: int, idx: int):
 		_rect(img, ox + 6, oy + 9 + fall, 2, 1, talisman_ink)
 		_rect(img, ox + 5, oy + 16 + fall, 2, 3, boot)
 		_rect(img, ox + 9, oy + 16 + fall, 2, 3, boot)
-		return
-		_rect(img, ox + 6, oy + 1 + lunge_y, 5, 3, hat)
-		_rect(img, ox + 6, oy + 4 + lunge_y, 5, 1, hat)
-		_rect(img, ox + 7, oy + 4 + lunge_y, 3, 4, skin)
-		_rect(img, ox + 8, oy + 3 + lunge_y, 2, 2, talisman)
-		_rect(img, ox + 8, oy + 4 + lunge_y, 2, 1, talisman_ink)
-		_rect(img, ox + 5, oy + 8 + lunge_y, 8, 8, robe)
-		_rect(img, ox + 6, oy + 9 + lunge_y, 6, 6, robe2)
-		_rect(img, ox + 5, oy + 8 + lunge_y, 1, 8, trim)
-		_rect(img, ox + 12, oy + 8 + lunge_y, 1, 8, trim)
-		_rect(img, ox + 7, oy + 8 + lunge_y, 4, 1, trim)
-		_rect(img, ox + 12, oy + 11 + lunge_y, 3, 3, robe2)
-		_rect(img, ox + 14, oy + 13 + lunge_y, 1, 1, trim)
-		_rect(img, ox + 7, oy + 16 + lunge_y, 2, 5, robe2)
-		_rect(img, ox + 9, oy + 16 + lunge_y, 2, 5, robe2)
-		_rect(img, ox + 7, oy + 20 + lunge_y, 2, 2, boot)
-		_rect(img, ox + 9, oy + 20 + lunge_y, 2, 2, boot)
 		return
 	_rect(img, ox + 5, oy + 1 + lunge_y, 6, 3, hat)
 	_rect(img, ox + 4, oy + 4 + lunge_y, 8, 1, hat)

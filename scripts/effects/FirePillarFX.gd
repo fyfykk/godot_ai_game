@@ -47,14 +47,14 @@ func _draw_fire_frame(img: Image, ox: int, oy: int, w: int, h: int, idx: int, fr
 	var mid := Color(0.98, 0.5, 0.15, 1.0)
 	var edge := Color(0.9, 0.2, 0.1, 0.9)
 	var smoke := Color(0.4, 0.1, 0.08, 0.6)
-	var t: float = float(idx) / max(float(frames - 1), 1.0)
-	var top: int = int(4 + t * 2)
+	var frame_t: float = float(idx) / max(float(frames - 1), 1.0)
+	var top: int = int(4 + frame_t * 2)
 	var base_w: int = 10
 	var wobble: int = -1 if idx % 2 == 0 else 1
 	for y in range(h - top):
 		var ry: float = float(y) / float(max(h - 1, 1))
 		var width: int = int(base_w * (1.0 - ry * 0.7))
-		var cx: int = ox + w / 2 + wobble
+		var cx: int = ox + int(w / 2.0) + wobble
 		for x in range(-width, width + 1):
 			var px := cx + x
 			var py := oy + (h - 1 - y)

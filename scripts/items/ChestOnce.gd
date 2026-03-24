@@ -26,14 +26,14 @@ func _build_once_chest_texture(w: int, h: int) -> Texture2D:
 	var mark := Color(0.2, 0.1, 0.02, 1.0)
 	for y in range(th):
 		for x in range(tw):
-			var col := wood1 if ((x / 3 + y / 2) % 2) == 0 else wood2
+			var col := wood1 if ((int(x / 3.0) + int(y / 2.0)) % 2) == 0 else wood2
 			if x == 0 or x == tw - 1 or y == 0 or y == th - 1:
 				col = edge
-			if y == th / 2:
+			if y == int(th / 2.0):
 				col = edge
 			img.set_pixel(x, y, col)
-	var cx: int = tw / 2
-	var cy: int = th / 2
+	var cx: int = int(tw / 2.0)
+	var cy: int = int(th / 2.0)
 	for dx in range(-1, 2):
 		var px := cx + dx
 		if px >= 0 and px < tw and cy >= 0 and cy < th:

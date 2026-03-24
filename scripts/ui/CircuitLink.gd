@@ -15,12 +15,12 @@ var use_seed: bool = false
 var seed_value: int = 0
 var puzzle_size: int = 4
 
-func setup(seed: int, size: int):
+func setup(seed_value_in: int, size: int):
 	if size > 1:
 		puzzle_size = size
-	if seed != 0:
+	if seed_value_in != 0:
 		use_seed = true
-		seed_value = seed
+		seed_value = seed_value_in
 
 func _ready():
 	if use_seed:
@@ -109,7 +109,7 @@ func close_forced():
 	_set_input_locked(false)
 	queue_free()
 
-func _process(delta):
+func _process(_delta):
 	return
 
 func _on_close_pressed():
@@ -121,7 +121,7 @@ func _set_input_locked(v: bool):
 		root_node.call("set_input_locked", v)
 
 func _set_process_mode_recursive(n: Node, mode: int):
-	n.process_mode = mode
+	n.process_mode = mode as Node.ProcessMode
 	for c in n.get_children():
 		if c is Node:
 			_set_process_mode_recursive(c, mode)
@@ -284,7 +284,7 @@ func _build_board():
 		rots[idx] = int(res[1])
 		solution_rots[idx] = int(res[1])
 	for i in range(types.size()):
-		var posi := Vector2i(i % board_size, i / board_size)
+		var posi := Vector2i(i % board_size, int(i / float(board_size)))
 		if conns.has(posi):
 			continue
 		types[i] = rng.randi_range(0, 1)
@@ -343,7 +343,7 @@ func _update_view():
 	for i in range(tiles.size()):
 		var btn: Button = tiles[i]
 		btn.text = _tile_char(int(types[i]), int(rots[i]))
-		var pos := Vector2i(i % board_size, i / board_size)
+		var pos := Vector2i(i % board_size, int(i / float(board_size)))
 		if pos == end:
 			btn.modulate = Color(1.0, 0.35, 0.35, 1.0)
 		elif pos == start or connected.has(pos):

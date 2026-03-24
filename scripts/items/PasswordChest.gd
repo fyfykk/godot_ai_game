@@ -54,7 +54,7 @@ func _ready():
 	collision_layer = 8
 	collision_mask = 1
 
-func _process(delta):
+func _process(_delta):
 	var players := get_tree().get_nodes_in_group("player")
 	var player_ref: Node2D = null
 	if players.size() > 0:
@@ -265,14 +265,14 @@ func _build_chest_texture(w: int, h: int) -> Texture2D:
 	var metal := Color(0.85, 0.9, 1.0, 1.0)
 	for y in range(th):
 		for x in range(tw):
-			var col := wood1 if ((x / 3 + y / 2) % 2) == 0 else wood2
+			var col := wood1 if ((int(x / 3.0) + int(y / 2.0)) % 2) == 0 else wood2
 			if x == 0 or x == tw - 1 or y == 0 or y == th - 1:
 				col = edge
-			if y == th / 2:
+			if y == int(th / 2.0):
 				col = edge
 			img.set_pixel(x, y, col)
-	var lock_x: int = tw / 2
-	var lock_y: int = th / 2 + 1
+	var lock_x: int = int(tw / 2.0)
+	var lock_y: int = int(th / 2.0) + 1
 	if lock_x >= 1 and lock_x < tw - 1 and lock_y >= 1 and lock_y < th - 1:
 		img.set_pixel(lock_x, lock_y, metal)
 		img.set_pixel(lock_x, lock_y - 1, metal)

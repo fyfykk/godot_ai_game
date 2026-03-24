@@ -326,7 +326,7 @@ func spend_run_coins(v: int) -> int:
 	var spent: int = min(run_coins, need)
 	run_coins -= spent
 	return spent
-func add_collectible(v: int, p: Node2D) -> bool:
+func add_collectible(_v: int, p: Node2D) -> bool:
 	if p == null:
 		return false
 	var ui := get_node("UI")
@@ -388,7 +388,7 @@ func add_collectible_direct(id: String) -> bool:
 		run_note_drops[id] = true
 	var rec: Dictionary = coll_config.get_item(id)
 	if rec != null and rec.size() > 0:
-		var unlock := String(rec.get("unlock", "none"))
+		var _unlock := String(rec.get("unlock", "none"))
 	return true
 
 func get_bag_grid_size() -> Vector2i:
@@ -658,8 +658,8 @@ func _apply_collectible_effect(p: Node2D, target: String, typ: String, val: floa
 	for m in mods:
 		if m == null or not m.has_method("get_display_name"):
 			continue
-		var name: String = m.get_display_name()
-		var ok := (target == "bullet" and name == "子弹攻击") or (target == "melee" and name == "近战攻击") or (target == "magic" and name == "范围魔法") or (target == "roar" and name == "龙咆哮")
+		var module_name: String = m.get_display_name()
+		var ok := (target == "bullet" and module_name == "子弹攻击") or (target == "melee" and module_name == "近战攻击") or (target == "magic" and module_name == "范围魔法") or (target == "roar" and module_name == "龙咆哮")
 		if not ok:
 			continue
 		if typ == "damage":
@@ -832,8 +832,8 @@ func _build_collectible_icon(icon_key: String, rarity: String, w: int, h: int, g
 		cell = 2
 	var grid_px_w: int = cell * gw
 	var grid_px_h: int = cell * gh
-	var gx0: int = int((tw - grid_px_w) / 2)
-	var gy0: int = int((th - grid_px_h) / 2)
+	var gx0: int = int((tw - grid_px_w) / 2.0)
+	var gy0: int = int((th - grid_px_h) / 2.0)
 	if bg_style == "codex":
 		if bg_full:
 			_draw_flat_background(img, 0, 0, tw, th, Color(0, 0, 0, 0.1), base, 2)
@@ -848,8 +848,8 @@ func _build_collectible_icon(icon_key: String, rarity: String, w: int, h: int, g
 		art_w = logical
 	if art_h < 1:
 		art_h = logical
-	var ax: int = gx0 + int((grid_px_w - art_w) / 2)
-	var ay: int = gy0 + int((grid_px_h - art_h) / 2)
+	var ax: int = gx0 + int((grid_px_w - art_w) / 2.0)
+	var ay: int = gy0 + int((grid_px_h - art_h) / 2.0)
 	var art_img := Image.create(logical, logical, false, Image.FORMAT_RGBA8)
 	art_img.fill(Color(0, 0, 0, 0))
 	_draw_icon_art(art_img, icon_key, 0, 0, 1, base)
@@ -873,8 +873,8 @@ func _build_collectible_art(icon_key: String, rarity: String, w: int, h: int, fi
 	var logical: int = 16
 	var art_w: int = tw if fill_art else min(tw, th)
 	var art_h: int = th if fill_art else min(tw, th)
-	var ax: int = int((tw - art_w) / 2)
-	var ay: int = int((th - art_h) / 2)
+	var ax: int = int((tw - art_w) / 2.0)
+	var ay: int = int((th - art_h) / 2.0)
 	var art_img := Image.create(logical, logical, false, Image.FORMAT_RGBA8)
 	art_img.fill(Color(0, 0, 0, 0))
 	_draw_icon_art(art_img, icon_key, 0, 0, 1, base)
@@ -1211,9 +1211,9 @@ func _update_collectible_dialog(dialog: AcceptDialog, counts: Dictionary, keep_i
 			icon.stretch_mode = TextureRect.STRETCH_SCALE
 			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 			row.add_child(icon)
-			var name := get_collectible_name(String(id))
+			var coll_name := get_collectible_name(String(id))
 			var label := Label.new()
-			label.text = "%s x%d" % [name, int(counts[id])]
+			label.text = "%s x%d" % [coll_name, int(counts[id])]
 			row.add_child(label)
 			list.add_child(row)
 		if keep_id != "":
@@ -1290,7 +1290,7 @@ func _set_bag_grid_size(w: int, h: int):
 	if ui and ui.has_method("on_bag_grid_changed"):
 		ui.call("on_bag_grid_changed")
 
-func _apply_collectible_unlock(id: String, unlock: String, p: Node2D, from_store: bool = false):
+func _apply_collectible_unlock(_id: String, unlock: String, p: Node2D, from_store: bool = false):
 	if unlock == BAG_EXPAND_UNLOCK:
 		if from_store:
 			_set_bag_grid_size(BAG_GRID_W_EXPANDED, BAG_GRID_H_EXPANDED)
@@ -1361,12 +1361,12 @@ func _apply_base_character_stats():
 		for m in mods:
 			if m == null or not m.has_method("get_display_name"):
 				continue
-			var name: String = m.get_display_name()
-			if name == "子弹攻击" and prec.has("bullet_damage"):
+			var module_name: String = m.get_display_name()
+			if module_name == "子弹攻击" and prec.has("bullet_damage"):
 				m.upgrade({"damage": int(prec["bullet_damage"])})
-			elif name == "近战攻击" and prec.has("melee_damage"):
+			elif module_name == "近战攻击" and prec.has("melee_damage"):
 				m.upgrade({"damage": int(prec["melee_damage"])})
-			elif name == "范围魔法" and prec.has("magic_damage"):
+			elif module_name == "范围魔法" and prec.has("magic_damage"):
 				m.upgrade({"damage": int(prec["magic_damage"])})
 
 func get_character_value(role: String, key: String, default_val = null):
@@ -1422,8 +1422,8 @@ func _player_has_target(p: Node2D, target: String) -> bool:
 	for m in mods:
 		if m == null or not m.has_method("get_display_name"):
 			continue
-		var name: String = m.get_display_name()
-		if (target == "bullet" and name == "子弹攻击") or (target == "melee" and name == "近战攻击") or (target == "magic" and name == "范围魔法") or (target == "roar" and name == "龙咆哮"):
+		var module_name: String = m.get_display_name()
+		if (target == "bullet" and module_name == "子弹攻击") or (target == "melee" and module_name == "近战攻击") or (target == "magic" and module_name == "范围魔法") or (target == "roar" and module_name == "龙咆哮"):
 			return true
 	return false
 
@@ -1436,8 +1436,8 @@ func _player_get_module(p: Node2D, target: String):
 	for m in mods:
 		if m == null or not m.has_method("get_display_name"):
 			continue
-		var name: String = m.get_display_name()
-		if (target == "bullet" and name == "子弹攻击") or (target == "melee" and name == "近战攻击") or (target == "magic" and name == "范围魔法") or (target == "roar" and name == "龙咆哮"):
+		var module_name: String = m.get_display_name()
+		if (target == "bullet" and module_name == "子弹攻击") or (target == "melee" and module_name == "近战攻击") or (target == "magic" and module_name == "范围魔法") or (target == "roar" and module_name == "龙咆哮"):
 			return m
 	return null
 

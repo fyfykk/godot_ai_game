@@ -295,7 +295,7 @@ func _build_ladder_texture(w: int, h: int) -> Texture2D:
 			if x <= left_x or x >= right_x:
 				col = rail
 			elif y % 8 <= 1:
-				col = rung1 if ((y / 8) % 2) == 0 else rung2
+				col = rung1 if (int(y / 8.0) % 2) == 0 else rung2
 			if col.a > 0.0 and (x == 0 or x == tw - 1):
 				col = edge
 			img.set_pixel(x, y, col)
@@ -316,7 +316,7 @@ func _build_coin_texture(w: int, h: int) -> Texture2D:
 			if not inside:
 				img.set_pixel(x, y, Color(0, 0, 0, 0))
 				continue
-			var col := c1 if ((x / 2 + y / 2) % 2) == 0 else c2
+			var col := c1 if ((int(x / 2.0) + int(y / 2.0)) % 2) == 0 else c2
 			var near_edge: bool = x == 0 or y == 0 or x == tw - 1 or y == th - 1
 			if not near_edge:
 				var nx_l: float = (float(x - 1) - float(tw) * 0.5 + 0.5) / (float(tw) * 0.5)
@@ -371,7 +371,7 @@ func _build_lock_texture(w: int, h: int) -> Texture2D:
 			var shackle_sides: bool = y >= shackle_top and y <= shackle_bottom and (x == shackle_left or x == shackle_right) and y >= shackle_top + 1 and y <= shackle_bottom - 1
 			if body or shackle or shackle_sides:
 				var shade := mid if ((x + y) % 2) == 0 else dark
-				if y < th / 2 and ((x + y) % 3 == 0):
+				if y < int(th / 2.0) and ((x + y) % 3 == 0):
 					shade = hi
 				col = shade
 				if x == body_left or x == body_right or y == body_top or y == body_bottom:

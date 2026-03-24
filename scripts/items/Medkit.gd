@@ -93,10 +93,10 @@ func _build_medkit_texture(w: int, h: int) -> Texture2D:
 	var cross := Color(0.95, 0.2, 0.2, 1.0)
 	for y in range(th):
 		for x in range(tw):
-			var col := base1 if ((x / 2 + y / 2) % 2) == 0 else base2
+			var col := base1 if ((int(x / 2.0) + int(y / 2.0)) % 2) == 0 else base2
 			if x == 0 or y == 0 or x == tw - 1 or y == th - 1:
 				col = edge
-			if (x >= tw / 2 - 1 and x <= tw / 2 + 1 and y >= 3 and y <= th - 4) or (y >= th / 2 - 1 and y <= th / 2 + 1 and x >= 3 and x <= tw - 4):
+			if (x >= int(tw / 2.0) - 1 and x <= int(tw / 2.0) + 1 and y >= 3 and y <= th - 4) or (y >= int(th / 2.0) - 1 and y <= int(th / 2.0) + 1 and x >= 3 and x <= tw - 4):
 				col = cross
 			img.set_pixel(x, y, col)
 	var tex := ImageTexture.create_from_image(img)

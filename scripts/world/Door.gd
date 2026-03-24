@@ -143,13 +143,13 @@ func _process(delta):
 	var player_ref: Node2D = null
 	if players.size() > 0:
 		player_ref = players[0] as Node2D
-	var near: bool = false
+	var _near: bool = false
 	var d_anchor: float = 999999.0
 	var d_base: float = 999999.0
 	if player_ref != null:
 		var anchor := _anchor_position()
 		d_anchor = player_ref.global_position.distance_to(anchor)
-		near = d_anchor <= interact_radius
+		_near = d_anchor <= interact_radius
 	var near_base: bool = false
 	if player_ref != null:
 		d_base = player_ref.global_position.distance_to(global_position)
@@ -257,15 +257,15 @@ func _get_prompt_y() -> float:
 	var ps := get_tree().get_nodes_in_group("player")
 	if ps.size() > 0:
 		var p := ps[0] as Node2D
-		var hb := p.get_node_or_null("HealthBar")
-		if hb and hb.has_method("get_top_y"):
-			var hb_top: float = float(hb.call("get_top_y"))
+		var hb_node := p.get_node_or_null("HealthBar")
+		if hb_node and hb_node.has_method("get_top_y"):
+			var hb_top: float = float(hb_node.call("get_top_y"))
 			var bg_half: float = prompt_e.get_bg_half_height() if prompt_e else 0.0
 			return hb_top - 5.0 - bg_half
-		if hb:
-			var bh = hb.get("bar_height")
+		if hb_node:
+			var bh = hb_node.get("bar_height")
 			if bh != null:
-				var hb_top2: float = hb.global_position.y - float(bh) * 0.5
+				var hb_top2: float = hb_node.global_position.y - float(bh) * 0.5
 				var bg_half2: float = prompt_e.get_bg_half_height() if prompt_e else 0.0
 				return hb_top2 - 5.0 - bg_half2
 		var bg_half3: float = prompt_e.get_bg_half_height() if prompt_e else 0.0
@@ -313,12 +313,12 @@ func _build_door_texture(w: int, h: int, opened: bool) -> Texture2D:
 	var knob := Color(0.96, 0.84, 0.42, 1.0)
 	for y in range(th):
 		for x in range(tw):
-			var col := c1 if ((x / 2 + y / 3) % 2) == 0 else c2
+			var col := c1 if ((int(x / 2.0) + int(y / 3.0)) % 2) == 0 else c2
 			if x == 0 or x == tw - 1 or y == 0 or y == th - 1:
 				col = edge
 			img.set_pixel(x, y, col)
-	var knob_x: int = max(min(tw - 2, tw / 2), 1)
-	var knob_y: int = clampi(th / 2, 1, th - 2)
+	var knob_x: int = max(min(tw - 2, int(tw / 2.0)), 1)
+	var knob_y: int = clampi(int(th / 2.0), 1, th - 2)
 	img.set_pixel(knob_x, knob_y, knob)
 	return ImageTexture.create_from_image(img)
 
@@ -331,7 +331,7 @@ func _build_wall_texture(w: int, h: int) -> Texture2D:
 	var edge := Color(0.22, 0.22, 0.28, 1.0)
 	for y in range(th):
 		for x in range(tw):
-			var stripe: bool = ((y / 4) % 2) == 0
+			var stripe: bool = (int(y / 4.0) % 2) == 0
 			var col := c1 if stripe else c2
 			if x == 0 or x == tw - 1:
 				col = edge

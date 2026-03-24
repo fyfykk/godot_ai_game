@@ -62,7 +62,7 @@ func _build_crow_sheet(w: int, h: int, frames: int) -> Texture2D:
 	texture_cache[key] = tex2
 	return tex2
 
-func _draw_crow_frame(img: Image, ox: int, oy: int, w: int, h: int, idx: int):
+func _draw_crow_frame(img: Image, ox: int, oy: int, _w: int, _h: int, idx: int):
 	var body := Color(0.08, 0.08, 0.1, 1.0)
 	var beak := Color(0.85, 0.75, 0.3, 1.0)
 	var eye := Color(0.95, 0.2, 0.2, 1.0)

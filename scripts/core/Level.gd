@@ -257,12 +257,12 @@ func _clear_ladders():
 
 func _generate_ladders():
 	var LadderScript := preload("res://scripts/world/Ladder.gd")
-	var lay: int = int(generator.layers)
+	var layer_count: int = int(generator.layers)
 	var w: float = float(generator.width)
 	var lh: float = float(generator.layer_height)
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
-	for i in range(1, lay):
+	for i in range(1, layer_count):
 		var ladder := LadderScript.new()
 		ladder.width = 12.0
 		var y_bottom: float = float(i) * lh
@@ -291,7 +291,7 @@ func _add_border_walls():
 		add_child(borders)
 	var w: float = float(generator.width)
 	var lh: float = float(generator.layer_height)
-	var lay: int = int(generator.layers)
+	var _lay: int = int(generator.layers)
 	# 扫描所有平台，确定上下边界（平台顶面）
 	var min_top: float = INF
 	var max_top: float = -INF
@@ -792,7 +792,7 @@ func _editor_find_existing_wall(plat: Node2D, local_x: float) -> Polygon2D:
 				best = c as Polygon2D
 	return best
 
-func _editor_bind_door_wall(door: Node2D, plat: Node2D, gx: float, lh: float, allow_create: bool):
+func _editor_bind_door_wall(_door: Node2D, _plat: Node2D, _gx: float, _lh: float, _allow_create: bool):
 	return
 
 func _editor_move_door_with_wall(door: Node2D, pos: Vector2):
@@ -817,7 +817,7 @@ func _editor_apply_door_wall(door: Node2D, plat: Node2D, lh: float):
 	if door.has_method("set_wall_dimensions"):
 		door.call("set_wall_dimensions", wall_w, wall_h)
 
-func _editor_ensure_door_wall(door: Node2D):
+func _editor_ensure_door_wall(_door: Node2D):
 	return
 
 func _ensure_all_door_walls():
@@ -967,7 +967,7 @@ func _editor_erase():
 	elif editor_tool == "special_door":
 		_editor_erase_door(pos)
 
-func _editor_place_platform(pos: Vector2):
+func _editor_place_platform(_pos: Vector2):
 	var lh := _editor_get_layer_height()
 	var layer_idx: int = editor_layer_index
 	_editor_clear_platform_layer(layer_idx, lh)
@@ -1695,7 +1695,6 @@ func _maybe_spawn_password_chest():
 	if rng.randf() > 0.3:
 		return
 	var lay: int = int(generator.layers)
-	var lh: float = float(generator.layer_height)
 	var allowed_layers := []
 	for i in range(max(lay - 3, 0), lay):
 		allowed_layers.append(i)
@@ -1786,7 +1785,7 @@ func _build_ground_texture(w: int, h: int) -> Texture2D:
 	var c_bot := Color(0.23, 0.23, 0.26, 1.0)
 	for y in range(th):
 		for x in range(tw):
-			var use_alt: bool = ((x / 4 + y / 4) % 2) == 0
+			var use_alt: bool = ((int(x / 4.0) + int(y / 4.0)) % 2) == 0
 			var col := c1 if use_alt else c2
 			if y < 2:
 				col = c_top
@@ -1809,7 +1808,7 @@ func _build_wall_texture(w: int, h: int, border: bool) -> Texture2D:
 	var edge := Color(0.22, 0.22, 0.28, 1.0)
 	for y in range(th):
 		for x in range(tw):
-			var stripe: bool = ((y / 4) % 2) == 0
+			var stripe: bool = (int(y / 4.0) % 2) == 0
 			var col := c1 if stripe else c2
 			if x == 0 or x == tw - 1:
 				col = edge
@@ -1838,7 +1837,7 @@ func _build_exit_texture(w: int, h: int) -> Texture2D:
 			var inner: bool = x > 4 and x < tw - 5 and y > 4 and y < th - 4
 			if inner:
 				col = glow
-				if abs(x - tw / 2) <= 1:
+				if abs(x - int(tw / 2.0)) <= 1:
 					col = core
 				elif ((x + y) % 3) == 0:
 					col = glow2

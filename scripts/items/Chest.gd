@@ -200,14 +200,14 @@ func _drop_items_once():
 			if drop_plan.size() > open_count:
 				items = drop_plan[open_count]
 			else:
-				var count := rng.randi_range(drop_count_min, drop_count_max)
-				for i in range(count):
+				var drop_count := rng.randi_range(drop_count_min, drop_count_max)
+				for i in range(drop_count):
 					items.append({"cat": 1, "coin": rng.randi_range(coin_drop_min, coin_drop_max)})
 				for i in range(items.size()):
 					_spawn_planned_item(items[i], i, opener)
 				return
-		var count := rng.randi_range(drop_count_min, drop_count_max)
-		for i in range(count):
+		var drop_count2 := rng.randi_range(drop_count_min, drop_count_max)
+		for i in range(drop_count2):
 			items.append({"cat": 1, "coin": rng.randi_range(coin_drop_min, coin_drop_max)})
 	for i in range(items.size()):
 		_spawn_planned_item(items[i], i, opener)
@@ -343,14 +343,14 @@ func _build_chest_texture(w: int, h: int) -> Texture2D:
 	var metal := Color(0.92, 0.82, 0.42, 1.0)
 	for y in range(th):
 		for x in range(tw):
-			var col := wood1 if ((x / 3 + y / 2) % 2) == 0 else wood2
+			var col := wood1 if ((int(x / 3.0) + int(y / 2.0)) % 2) == 0 else wood2
 			if x == 0 or x == tw - 1 or y == 0 or y == th - 1:
 				col = edge
-			if y == th / 2:
+			if y == int(th / 2.0):
 				col = edge
 			img.set_pixel(x, y, col)
-	var lock_x: int = tw / 2
-	var lock_y: int = th / 2 + 1
+	var lock_x: int = int(tw / 2.0)
+	var lock_y: int = int(th / 2.0) + 1
 	if lock_x >= 1 and lock_x < tw - 1 and lock_y >= 1 and lock_y < th - 1:
 		img.set_pixel(lock_x, lock_y, metal)
 		img.set_pixel(lock_x, lock_y - 1, metal)
