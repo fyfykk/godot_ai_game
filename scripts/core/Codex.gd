@@ -45,6 +45,9 @@ class GridIcon:
 		queue_redraw()
 
 func _ready():
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	bg_rect = ColorRect.new()
 	bg_rect.color = Color(0.06, 0.07, 0.1, 1.0)
 	bg_rect.anchor_left = 0.0
@@ -136,6 +139,7 @@ func _ready():
 		grid.add_child(card)
 	_update_bg_size()
 	UIFontScript.apply_tree(self)
+	call_deferred("_update_bg_size")
 
 func _notification(what):
 	if what == NOTIFICATION_RESIZED:
@@ -148,18 +152,22 @@ func _update_bg_size():
 	bg_rect.position = Vector2.ZERO
 	bg_rect.size = vp
 	if codex_scroller:
-		var target_w: float = codex_scroller.custom_minimum_size.x
-		var target_h: float = codex_scroller.custom_minimum_size.y
-		codex_scroller.anchor_left = 0.5
-		codex_scroller.anchor_right = 0.5
+		var max_w: float = max(320.0, vp.x - 80.0)
+		var max_h: float = max(240.0, vp.y - 140.0)
+		var target_w: float = min(codex_scroller.custom_minimum_size.x, max_w)
+		var target_h: float = min(codex_scroller.custom_minimum_size.y, max_h)
+		codex_scroller.anchor_left = 0.0
+		codex_scroller.anchor_right = 0.0
 		codex_scroller.anchor_top = 0.0
 		codex_scroller.anchor_bottom = 0.0
-		codex_scroller.offset_left = -target_w * 0.5
-		codex_scroller.offset_right = target_w * 0.5
+		codex_scroller.offset_left = 0.0
+		codex_scroller.offset_right = target_w
 		codex_scroller.offset_top = 100.0
 		codex_scroller.offset_bottom = 100.0 + target_h
+		codex_scroller.size = Vector2(target_w, target_h)
+		codex_scroller.position = Vector2(max(0.0, (vp.x - target_w) * 0.5), 100.0)
 		if codex_grid:
-			var inner_left: float = max(0.0, (codex_scroller.size.x - codex_grid.custom_minimum_size.x) * 0.5)
+			var inner_left: float = max(0.0, (target_w - codex_grid.custom_minimum_size.x) * 0.5)
 			codex_grid.position = Vector2(inner_left, 0.0)
 
 func _on_back_pressed():
