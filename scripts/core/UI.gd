@@ -14,6 +14,12 @@ var attack_panel: PanelContainer
 var attack_list: VBoxContainer
 var coins_label: Label
 var coll_label: Label
+var hud_panel: PanelContainer
+var hud_box: VBoxContainer
+var tip_panel: PanelContainer
+var tip_box: VBoxContainer
+var evac_tip_panel: PanelContainer
+var evac_tip_box: VBoxContainer
 var choice_panel: PanelContainer
 var choice_buttons: Array = []
 var choice_options: Array = []
@@ -92,18 +98,34 @@ class ChoiceGridIcon:
 		line_col = Color(1, 1, 1, 0.2)
 		queue_redraw()
 func _ready():
+	hud_panel = PanelContainer.new()
+	add_child(hud_panel)
+	hud_panel.z_index = 100
+	if hud_panel is Control:
+		(hud_panel as Control).anchor_left = 0.0
+		(hud_panel as Control).anchor_top = 0.0
+		(hud_panel as Control).anchor_right = 0.0
+		(hud_panel as Control).anchor_bottom = 0.0
+	var hud_style := StyleBoxFlat.new()
+	hud_style.bg_color = Color(0.05, 0.05, 0.06, 0.7)
+	hud_style.border_color = Color(0.6, 0.6, 0.7, 0.2)
+	hud_style.border_width_left = 1
+	hud_style.border_width_top = 1
+	hud_style.border_width_right = 1
+	hud_style.border_width_bottom = 1
+	hud_style.content_margin_left = 10
+	hud_style.content_margin_top = 8
+	hud_style.content_margin_right = 10
+	hud_style.content_margin_bottom = 8
+	hud_panel.add_theme_stylebox_override("panel", hud_style)
+	hud_box = VBoxContainer.new()
+	hud_box.alignment = BoxContainer.ALIGNMENT_BEGIN
+	hud_panel.add_child(hud_box)
 	label = Label.new()
-	add_child(label)
-	label.position = Vector2(8, 8)
+	hud_box.add_child(label)
 	label.text = "HP:-  Enemies 0"
-	if label is Control:
-		(label as Control).anchor_left = 0.0
-		(label as Control).anchor_top = 0.0
-		(label as Control).anchor_right = 0.0
-		(label as Control).anchor_bottom = 0.0
 	label.scale = Vector2(1, 1)
 	UIFontScript.apply_tree(self)
-	label.z_index = 100
 	progress_node = MoonProgress.new()
 	add_child(progress_node)
 	# center top; actual x set in _process using viewport width
@@ -116,29 +138,61 @@ func _ready():
 	evac_node.fill_color = Color(0.2, 0.6, 1.0, 1.0)
 	evac_node.back_color = Color(0, 0, 0, 0.6)
 	evac_node.visible = false
+	tip_panel = PanelContainer.new()
+	add_child(tip_panel)
+	tip_panel.z_index = 101
+	if tip_panel is Control:
+		(tip_panel as Control).anchor_left = 0.0
+		(tip_panel as Control).anchor_top = 0.0
+		(tip_panel as Control).anchor_right = 0.0
+		(tip_panel as Control).anchor_bottom = 0.0
+	var tip_style := StyleBoxFlat.new()
+	tip_style.bg_color = Color(0.04, 0.04, 0.06, 0.75)
+	tip_style.border_color = Color(0.7, 0.7, 0.8, 0.25)
+	tip_style.border_width_left = 1
+	tip_style.border_width_top = 1
+	tip_style.border_width_right = 1
+	tip_style.border_width_bottom = 1
+	tip_style.content_margin_left = 10
+	tip_style.content_margin_top = 6
+	tip_style.content_margin_right = 10
+	tip_style.content_margin_bottom = 6
+	tip_panel.add_theme_stylebox_override("panel", tip_style)
+	tip_box = VBoxContainer.new()
+	tip_panel.add_child(tip_box)
 	game_tip = Label.new()
-	add_child(game_tip)
+	tip_box.add_child(game_tip)
 	game_tip.text = "满条之后会触发血月"
 	game_tip.custom_minimum_size = Vector2(240, 20)
 	game_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	game_tip.z_index = 101
-	if game_tip is Control:
-		(game_tip as Control).anchor_left = 0.0
-		(game_tip as Control).anchor_top = 0.0
-		(game_tip as Control).anchor_right = 0.0
-		(game_tip as Control).anchor_bottom = 0.0
+	evac_tip_panel = PanelContainer.new()
+	add_child(evac_tip_panel)
+	evac_tip_panel.z_index = 101
+	if evac_tip_panel is Control:
+		(evac_tip_panel as Control).anchor_left = 0.0
+		(evac_tip_panel as Control).anchor_top = 0.0
+		(evac_tip_panel as Control).anchor_right = 0.0
+		(evac_tip_panel as Control).anchor_bottom = 0.0
+	var evac_style := StyleBoxFlat.new()
+	evac_style.bg_color = Color(0.04, 0.04, 0.06, 0.75)
+	evac_style.border_color = Color(0.4, 0.7, 1.0, 0.25)
+	evac_style.border_width_left = 1
+	evac_style.border_width_top = 1
+	evac_style.border_width_right = 1
+	evac_style.border_width_bottom = 1
+	evac_style.content_margin_left = 10
+	evac_style.content_margin_top = 6
+	evac_style.content_margin_right = 10
+	evac_style.content_margin_bottom = 6
+	evac_tip_panel.add_theme_stylebox_override("panel", evac_style)
+	evac_tip_box = VBoxContainer.new()
+	evac_tip_panel.add_child(evac_tip_box)
 	evac_tip = Label.new()
-	add_child(evac_tip)
+	evac_tip_box.add_child(evac_tip)
 	evac_tip.text = "倒计时结束后可撤离"
 	evac_tip.custom_minimum_size = Vector2(240, 20)
 	evac_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	evac_tip.visible = false
-	evac_tip.z_index = 101
-	if evac_tip is Control:
-		(evac_tip as Control).anchor_left = 0.0
-		(evac_tip as Control).anchor_top = 0.0
-		(evac_tip as Control).anchor_right = 0.0
-		(evac_tip as Control).anchor_bottom = 0.0
 	attack_panel = PanelContainer.new()
 	add_child(attack_panel)
 	attack_panel.position = Vector2(8, 120)
@@ -206,35 +260,14 @@ func _ready():
 	btn_resume.pressed.connect(_on_pause_resume)
 	pause_box.add_child(btn_resume)
 	coins_label = Label.new()
-	add_child(coins_label)
-	coins_label.position = Vector2(8, 40)
+	hud_box.add_child(coins_label)
 	coins_label.text = "金币: 0"
-	if coins_label is Control:
-		(coins_label as Control).anchor_left = 0.0
-		(coins_label as Control).anchor_top = 0.0
-		(coins_label as Control).anchor_right = 0.0
-		(coins_label as Control).anchor_bottom = 0.0
-	coins_label.z_index = 100
 	coll_label = Label.new()
-	add_child(coll_label)
-	coll_label.position = Vector2(8, 62)
+	hud_box.add_child(coll_label)
 	coll_label.text = "收藏品: 0"
-	if coll_label is Control:
-		(coll_label as Control).anchor_left = 0.0
-		(coll_label as Control).anchor_top = 0.0
-		(coll_label as Control).anchor_right = 0.0
-		(coll_label as Control).anchor_bottom = 0.0
-	coll_label.z_index = 100
 	bag_button = Button.new()
-	add_child(bag_button)
+	hud_box.add_child(bag_button)
 	bag_button.text = "背包(B)"
-	bag_button.position = Vector2(8, 86)
-	bag_button.z_index = 100
-	if bag_button is Control:
-		(bag_button as Control).anchor_left = 0.0
-		(bag_button as Control).anchor_top = 0.0
-		(bag_button as Control).anchor_right = 0.0
-		(bag_button as Control).anchor_bottom = 0.0
 	bag_button.pressed.connect(_toggle_bag)
 	var MiniMapScript := preload("res://scripts/ui/MiniMap.gd")
 	mini_map = MiniMapScript.new()
@@ -744,15 +777,17 @@ func _process(_delta):
 	_update_bag_layout(vp_size)
 	if progress_node:
 		progress_node.position.x = vp_size.x * 0.5
-	if game_tip:
-		game_tip.position = Vector2(progress_node.position.x - game_tip.custom_minimum_size.x * 0.5, progress_node.position.y - 58)
+	if tip_panel and game_tip:
+		tip_panel.position = Vector2(progress_node.position.x - game_tip.custom_minimum_size.x * 0.5, progress_node.position.y - 64)
 	if evac_node:
 		evac_node.position.x = vp_size.x * 0.5 + 220.0
-	if evac_tip:
-		evac_tip.position = Vector2(evac_node.position.x - evac_tip.custom_minimum_size.x * 0.5, evac_node.position.y - 58)
+	if evac_tip_panel and evac_tip:
+		evac_tip_panel.position = Vector2(evac_node.position.x - evac_tip.custom_minimum_size.x * 0.5, evac_node.position.y - 64)
 	if pause_button:
 		pause_button.position = Vector2(vp_size.x - pause_button.custom_minimum_size.x - 12.0, 8.0)
 		pause_button.add_theme_font_size_override("font_size", 18)
+	if hud_panel:
+		hud_panel.position = Vector2(8, 8)
 	_update_pause_layout(vp_size)
 	if overlay_rect:
 		overlay_rect.custom_minimum_size = vp_size
@@ -778,6 +813,8 @@ func _process(_delta):
 		var active: bool = bool(root.is_post_interaction_active())
 		evac_node.visible = active
 		evac_tip.visible = active
+		if evac_tip_panel:
+			evac_tip_panel.visible = active
 		if active:
 			var pt: float = float(root.get_post_time())
 			var pl: float = float(root.get_post_limit())

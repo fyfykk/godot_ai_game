@@ -26,6 +26,8 @@ var cheat_ui
 var menu_bg: TextureRect
 var popup_overlay: ColorRect
 var popup_overlay_count: int = 0
+var title_node: Control
+var title_container: CenterContainer
 
 func _ready():
 	_ensure_audio_output()
@@ -65,6 +67,20 @@ func _ready():
 	menu_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	menu_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(menu_center)
+	title_container = CenterContainer.new()
+	title_container.name = "TitleContainer"
+	title_container.anchor_left = 0.0
+	title_container.anchor_top = 0.0
+	title_container.anchor_right = 1.0
+	title_container.anchor_bottom = 0.0
+	title_container.offset_left = 0
+	title_container.offset_top = 40
+	title_container.offset_right = 0
+	title_container.offset_bottom = 180
+	title_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	title_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(title_container)
 	var menu_box := VBoxContainer.new()
 	menu_box.name = "MenuList"
 	menu_box.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -72,12 +88,9 @@ func _ready():
 	menu_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	menu_box.add_theme_constant_override("separation", 16)
 	menu_center.add_child(menu_box)
-	var title := $Title
-	if title:
-		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		if title.get_parent() != menu_box:
-			title.get_parent().remove_child(title)
-			menu_box.add_child(title)
+	title_node = _build_art_title("夜坠城堡")
+	title_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_container.add_child(title_node)
 	var btn := $StartButton
 	if btn:
 		btn.text = "开始游戏"
@@ -127,6 +140,35 @@ func _ready():
 	help.z_index = 10
 	help.pressed.connect(_on_help_pressed)
 	UIFontScript.apply_tree(get_tree().get_root())
+
+func _build_art_title(name: String) -> Control:
+	var root := Control.new()
+	root.custom_minimum_size = Vector2(520, 120)
+	root.size = root.custom_minimum_size
+	root.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	root.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var shadow := Label.new()
+	shadow.text = name
+	shadow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	shadow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	shadow.size = root.custom_minimum_size
+	shadow.position = Vector2(4, 4)
+	shadow.add_theme_font_size_override("font_size", 54)
+	shadow.add_theme_color_override("font_color", Color(0.05, 0.05, 0.08, 0.9))
+	shadow.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.03, 1.0))
+	shadow.add_theme_constant_override("outline_size", 8)
+	root.add_child(shadow)
+	var main := Label.new()
+	main.text = name
+	main.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	main.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	main.size = root.custom_minimum_size
+	main.add_theme_font_size_override("font_size", 54)
+	main.add_theme_color_override("font_color", Color(0.9, 0.95, 1.0, 1.0))
+	main.add_theme_color_override("font_outline_color", Color(0.2, 0.25, 0.35, 1.0))
+	main.add_theme_constant_override("outline_size", 4)
+	root.add_child(main)
+	return root
 
 func _build_menu_background():
 	menu_bg = TextureRect.new()

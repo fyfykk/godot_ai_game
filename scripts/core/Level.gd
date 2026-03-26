@@ -451,6 +451,7 @@ func _build_level_bg_texture(size: Vector2, seed: int) -> Texture2D:
 	var layer_h: int = 80
 	if generator and generator.has_method("get") and generator.get("layer_height") != null:
 		layer_h = int(generator.get("layer_height"))
+	_apply_layer_tint(img, layer_h)
 	var window_rects := _draw_window_slits(img, seed + 401, layer_h)
 	_draw_wall_candles(img, seed + 503, layer_h, window_rects)
 	return ImageTexture.create_from_image(img)
@@ -491,6 +492,21 @@ func _draw_brick_arch(img: Image, seed: int):
 		var offset: int = 0 if ((y / brick_h) % 2 == 0) else brick_w / 2
 		for x in range(-offset, w, brick_w):
 			_stroke_rect(img, x + 1, y + 1, brick_w - 2, brick_h - 2, Color(0.2, 0.15, 0.12, 1.0))
+
+func _apply_layer_tint(img: Image, layer_h: int):
+	var w := img.get_width()
+	var h := img.get_height()
+	var rows: int = max(int(h / max(layer_h, 1)), 1)
+	var deltas := [-0.22, 0.0, 0.18, -0.12]
+	for r in range(rows):
+		var delta: float = float(deltas[r % deltas.size()])
+		var tint := Color(1.0 + delta, 1.0 + delta * 0.6, 1.0 + delta * 0.4, 1.0)
+		var y0: int = int(r * layer_h)
+		var y1: int = int(min((r + 1) * layer_h, h))
+		for y in range(y0, y1):
+			for x in range(w):
+				var c := img.get_pixel(x, y)
+				img.set_pixel(x, y, Color(clamp(c.r * tint.r, 0.0, 1.0), clamp(c.g * tint.g, 0.0, 1.0), clamp(c.b * tint.b, 0.0, 1.0), c.a))
 
 func _draw_side_bricks(img: Image, seed: int):
 	var w := img.get_width()
