@@ -8,6 +8,8 @@ var CheatSettingsScript := preload("res://scripts/data/CheatSettings.gd")
 var meta_store
 @onready var failure_dialog := $UI/FailureDialog
 @onready var success_dialog := $UI/SuccessDialog
+var popup_overlay: ColorRect = null
+var popup_overlay_count: int = 0
 var game_time: float = 0.0
 var max_time: float = 180
 var post_interaction_active: bool = false
@@ -99,6 +101,7 @@ func _ready():
 		if failure_dialog.has_method("set"):
 			failure_dialog.borderless = true
 		failure_dialog.size = Vector2(480, 420)
+		_apply_dialog_background(failure_dialog, 1101)
 	if success_dialog:
 		success_dialog.process_mode = Node.PROCESS_MODE_WHEN_PAUSED
 		if success_dialog.has_method("get_ok_button"):
@@ -108,6 +111,10 @@ func _ready():
 		if success_dialog.has_method("set"):
 			success_dialog.borderless = true
 		success_dialog.size = Vector2(480, 420)
+		_apply_dialog_background(success_dialog, 1201)
+	_setup_popup_overlay()
+	_bind_popup_overlay(failure_dialog)
+	_bind_popup_overlay(success_dialog)
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var seed_min: int = get_const_int("core.run_seed_min", 1)
@@ -290,6 +297,110 @@ func _on_success_confirmed():
 	meta_store.save()
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+
+func _setup_popup_overlay():
+	var ui := get_node_or_null("UI")
+	if ui == null:
+		return
+	popup_overlay = ColorRect.new()
+	popup_overlay.color = Color(0, 0, 0, 0.65)
+	popup_overlay.visible = false
+	popup_overlay.z_index = 1500
+	popup_overlay.anchor_left = 0.0
+	popup_overlay.anchor_top = 0.0
+	popup_overlay.anchor_right = 1.0
+	popup_overlay.anchor_bottom = 1.0
+	popup_overlay.offset_left = 0
+	popup_overlay.offset_top = 0
+	popup_overlay.offset_right = 0
+	popup_overlay.offset_bottom = 0
+	popup_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	ui.add_child(popup_overlay)
+	ui.move_child(popup_overlay, 0)
+
+func _bind_popup_overlay(popup: Window):
+	if popup == null:
+		return
+	if popup.has_signal("visibility_changed"):
+		popup.visibility_changed.connect(_on_popup_visibility_changed.bind(popup))
+
+func _on_popup_visibility_changed(popup: Window):
+	if popup and popup.visible:
+		popup_overlay_count += 1
+		if popup is AcceptDialog and popup.has_meta("bg_seed"):
+			_refresh_dialog_background(popup as AcceptDialog)
+	else:
+		popup_overlay_count = max(popup_overlay_count - 1, 0)
+	if popup_overlay:
+		popup_overlay.visible = popup_overlay_count > 0
+
+func _apply_dialog_background(dialog: AcceptDialog, seed: int):
+	if dialog == null:
+		return
+	dialog.set_meta("bg_seed", seed)
+	dialog.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var bg := dialog.get_node_or_null("DialogBackground")
+	if bg == null:
+		var tex := TextureRect.new()
+		tex.name = "DialogBackground"
+		tex.anchor_left = 0.0
+		tex.anchor_top = 0.0
+		tex.anchor_right = 1.0
+		tex.anchor_bottom = 1.0
+		tex.offset_left = 0
+		tex.offset_top = 0
+		tex.offset_right = 0
+		tex.offset_bottom = 0
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex.stretch_mode = TextureRect.STRETCH_SCALE
+		tex.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tex.z_index = -10
+		dialog.add_child(tex)
+		dialog.move_child(tex, 0)
+		bg = tex
+	_refresh_dialog_background(dialog)
+
+func _refresh_dialog_background(dialog: AcceptDialog):
+	var bg := dialog.get_node_or_null("DialogBackground")
+	if bg == null or not (bg is TextureRect):
+		return
+	var size := dialog.size
+	if size.x < 1.0 or size.y < 1.0:
+		size = dialog.custom_minimum_size
+	if size.x < 1.0 or size.y < 1.0:
+		size = Vector2(480, 420)
+	(bg as TextureRect).texture = _build_dialog_bg_texture(size, int(dialog.get_meta("bg_seed")))
+
+func _build_dialog_bg_texture(size: Vector2, seed: int) -> Texture2D:
+	var w := int(clamp(size.x, 320.0, 640.0))
+	var h := int(clamp(size.y, 240.0, 520.0))
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var top := Color(0.06, 0.06, 0.08, 1.0)
+	var mid := Color(0.08, 0.08, 0.1, 1.0)
+	var bot := Color(0.1, 0.1, 0.12, 1.0)
+	for y in range(h):
+		var t := float(y) / float(max(h - 1, 1))
+		var col := top.lerp(mid, min(t * 1.1, 1.0)).lerp(bot, t)
+		for x in range(w):
+			img.set_pixel(x, y, col)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	for i in range(int(w * h * 0.002)):
+		var x := rng.randi_range(0, w - 1)
+		var y := rng.randi_range(0, h - 1)
+		var c := img.get_pixel(x, y)
+		img.set_pixel(x, y, c.lerp(Color(0, 0, 0, 1.0), 0.08))
+	_stroke_rect(img, 0, 0, w, h, Color(0.02, 0.02, 0.03, 1.0))
+	_stroke_rect(img, 2, 2, w - 4, h - 4, Color(0.15, 0.15, 0.18, 1.0))
+	for y in range(h):
+		var fade := float(min(min(y, h - 1 - y), 40)) / 40.0
+		var edge: float = 1.0 - float(clamp(fade, 0.0, 1.0))
+		for x in range(w):
+			var c := img.get_pixel(x, y)
+			img.set_pixel(x, y, c.lerp(Color(0, 0, 0, 1.0), edge * 0.25))
+	return ImageTexture.create_from_image(img)
+
 
 func _close_active_puzzles():
 	for p in get_tree().get_nodes_in_group("puzzle"):

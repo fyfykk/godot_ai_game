@@ -2,6 +2,7 @@ extends Control
 
 var RarityScript := preload("res://scripts/data/Rarity.gd")
 var UIFontScript := preload("res://scripts/ui/UIFont.gd")
+var bg_rect: ColorRect = null
 
 class GridIcon:
 	extends Control
@@ -42,6 +43,21 @@ class GridIcon:
 		queue_redraw()
 
 func _ready():
+	bg_rect = ColorRect.new()
+	bg_rect.color = Color(0.06, 0.07, 0.1, 1.0)
+	bg_rect.anchor_left = 0.0
+	bg_rect.anchor_top = 0.0
+	bg_rect.anchor_right = 0.0
+	bg_rect.anchor_bottom = 0.0
+	bg_rect.offset_left = 0
+	bg_rect.offset_top = 0
+	bg_rect.offset_right = 0
+	bg_rect.offset_bottom = 0
+	bg_rect.z_index = -10
+	bg_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg_rect)
+	move_child(bg_rect, 0)
+	_update_bg_size()
 	var CollConfigScript := preload("res://scripts/data/CollectiblesConfig.gd")
 	var CollStoreScript := preload("res://scripts/data/CollectiblesStore.gd")
 	var config := CollConfigScript.new()
@@ -116,6 +132,17 @@ func _ready():
 		hb.add_child(right)
 		grid.add_child(card)
 	UIFontScript.apply_tree(self)
+
+func _notification(what):
+	if what == NOTIFICATION_RESIZED:
+		_update_bg_size()
+
+func _update_bg_size():
+	if bg_rect == null:
+		return
+	var vp := get_viewport_rect().size
+	bg_rect.position = Vector2.ZERO
+	bg_rect.size = vp
 
 func _on_back_pressed():
 	var root := get_tree().get_root().get_node_or_null("GameRoot")

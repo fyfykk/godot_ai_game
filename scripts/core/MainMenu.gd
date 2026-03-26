@@ -23,8 +23,14 @@ var gacha_ui
 var help_ui
 var level_ui
 var cheat_ui
+var menu_bg: TextureRect
+var popup_overlay: ColorRect
+var popup_overlay_count: int = 0
 
 func _ready():
+	_ensure_audio_output()
+	_build_menu_background()
+	_build_popup_overlay()
 	meta_store = MetaStoreScript.new()
 	meta_store.load()
 	cheat_settings = CheatSettingsScript.new()
@@ -122,6 +128,113 @@ func _ready():
 	help.pressed.connect(_on_help_pressed)
 	UIFontScript.apply_tree(get_tree().get_root())
 
+func _build_menu_background():
+	menu_bg = TextureRect.new()
+	menu_bg.name = "MenuBackground"
+	menu_bg.anchor_left = 0.0
+	menu_bg.anchor_top = 0.0
+	menu_bg.anchor_right = 1.0
+	menu_bg.anchor_bottom = 1.0
+	menu_bg.offset_left = 0
+	menu_bg.offset_top = 0
+	menu_bg.offset_right = 0
+	menu_bg.offset_bottom = 0
+	menu_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	menu_bg.stretch_mode = TextureRect.STRETCH_SCALE
+	menu_bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	menu_bg.z_index = -10
+	add_child(menu_bg)
+	move_child(menu_bg, 0)
+	_update_menu_background_texture()
+
+func _notification(what):
+	if what == NOTIFICATION_RESIZED:
+		_update_menu_background_texture()
+
+func _update_menu_background_texture():
+	if menu_bg == null:
+		return
+	var size := get_viewport_rect().size
+	menu_bg.texture = _build_menu_bg_texture(size, 91427)
+
+func _build_menu_bg_texture(size: Vector2, seed: int) -> Texture2D:
+	var w := int(clamp(size.x, 960.0, 1600.0))
+	var h := int(clamp(size.y, 540.0, 900.0))
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var top := Color(0.06, 0.08, 0.12, 1.0)
+	var mid := Color(0.08, 0.12, 0.18, 1.0)
+	var bot := Color(0.12, 0.16, 0.22, 1.0)
+	for y in range(h):
+		var t := float(y) / float(max(h - 1, 1))
+		var col := top.lerp(mid, min(t * 1.2, 1.0)).lerp(bot, t * t)
+		for x in range(w):
+			img.set_pixel(x, y, col)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	for i in range(int(w * h * 0.006)):
+		var x := rng.randi_range(0, w - 1)
+		var y := rng.randi_range(0, int(h * 0.55))
+		var a := rng.randf_range(0.08, 0.2)
+		var c := Color(0.7, 0.85, 1.0, a)
+		img.set_pixel(x, y, c)
+	_draw_mountain_layer(img, int(h * 0.72), int(h * 0.06), Color(0.07, 0.09, 0.12, 1.0), seed + 13)
+	_draw_mountain_layer(img, int(h * 0.8), int(h * 0.08), Color(0.05, 0.07, 0.1, 1.0), seed + 29)
+	_draw_mountain_layer(img, int(h * 0.88), int(h * 0.1), Color(0.04, 0.05, 0.08, 1.0), seed + 41)
+	return ImageTexture.create_from_image(img)
+
+func _draw_mountain_layer(img: Image, base_y: int, amp: int, col: Color, seed: int):
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var w := img.get_width()
+	var h := img.get_height()
+	var cur := float(base_y)
+	for x in range(w):
+		cur += rng.randf_range(-float(amp) * 0.18, float(amp) * 0.18)
+		cur = clamp(cur, float(base_y - amp), float(base_y + amp))
+		for y in range(int(cur), h):
+			img.set_pixel(x, y, col)
+
+func _build_popup_overlay():
+	popup_overlay = ColorRect.new()
+	popup_overlay.color = Color(0, 0, 0, 0.65)
+	popup_overlay.visible = false
+	popup_overlay.z_index = 200
+	popup_overlay.anchor_left = 0.0
+	popup_overlay.anchor_top = 0.0
+	popup_overlay.anchor_right = 1.0
+	popup_overlay.anchor_bottom = 1.0
+	popup_overlay.offset_left = 0
+	popup_overlay.offset_top = 0
+	popup_overlay.offset_right = 0
+	popup_overlay.offset_bottom = 0
+	popup_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(popup_overlay)
+
+func _bind_popup_overlay(popup: Window):
+	if popup == null:
+		return
+	if popup.has_signal("visibility_changed"):
+		popup.visibility_changed.connect(_on_popup_visibility_changed.bind(popup))
+
+func _on_popup_visibility_changed(popup: Window):
+	if popup and popup.visible:
+		popup_overlay_count += 1
+	else:
+		popup_overlay_count = max(popup_overlay_count - 1, 0)
+	if popup_overlay:
+		popup_overlay.visible = popup_overlay_count > 0
+
+func _ensure_audio_output():
+	var devices := AudioServer.get_output_device_list()
+	if devices.is_empty():
+		return
+	var current := String(AudioServer.output_device)
+	if current == "" or not devices.has(current):
+		if devices.has("Default"):
+			AudioServer.output_device = "Default"
+		else:
+			AudioServer.output_device = String(devices[0])
+
 func _input(event):
 	if event is InputEventKey:
 		if event.keycode == KEY_P:
@@ -168,6 +281,7 @@ func _build_redeem_dialog():
 		cancelb.text = "取消"
 	redeem_dialog.confirmed.connect(_on_redeem_confirmed)
 	add_child(redeem_dialog)
+	_bind_popup_overlay(redeem_dialog)
 
 func _on_redeem_confirmed():
 	var code := redeem_input.text.strip_edges().to_lower()
@@ -197,6 +311,7 @@ func _show_redeem_result(msg: String):
 	dlg.title = "兑换码"
 	dlg.dialog_text = msg
 	add_child(dlg)
+	_bind_popup_overlay(dlg)
 	dlg.popup_centered()
 
 func _on_editor_pressed():
@@ -231,6 +346,7 @@ func _on_save_path_pressed():
 	dlg.title = "存档路径"
 	dlg.dialog_text = "本地目录:\n%s\n\n收藏品:\n%s\n\n元进度:\n%s" % [dir, coll, prog]
 	add_child(dlg)
+	_bind_popup_overlay(dlg)
 	dlg.popup_centered()
 func _on_clear_collectibles_pressed():
 	var CollStoreScriptLocal := preload("res://scripts/data/CollectiblesStore.gd")
@@ -251,6 +367,7 @@ func _on_clear_collectibles_pressed():
 	dlg.title = "开发者功能"
 	dlg.dialog_text = "已清理本地收藏品与装备记录"
 	add_child(dlg)
+	_bind_popup_overlay(dlg)
 	dlg.popup_centered()
 
 func _build_codex():

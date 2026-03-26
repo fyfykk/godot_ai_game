@@ -1,4 +1,5 @@
 extends AttackModule
+class_name BulletAttack
 
 var damage: int = 1
 var interval: float = 0.8

@@ -40,6 +40,9 @@ var editor_holding_original_wall: Node2D = null
 var editor_holding_original_wall_parent: Node = null
 var editor_holding_original_wall_pos: Vector2 = Vector2.ZERO
 var editor_holding_original_wall_sprite_pos: Vector2 = Vector2.ZERO
+var map_bg_layer: Node2D = null
+var map_bg_rect: Sprite2D = null
+var editor_overlay: ColorRect = null
 var LocalPathsScript := preload("res://scripts/data/LocalPaths.gd")
 static var texture_cache: Dictionary = {}
 
@@ -52,6 +55,7 @@ func _get_const_float(key: String, default_val: float) -> float:
 func _ready():
 	top_margin = _get_const_float("level.top_margin", top_margin)
 	editor_grid = _get_const_float("level.editor_grid", editor_grid)
+	_ensure_map_background()
 	var editor_w: float = _get_const_float("level.editor_platform_width_min", editor_platform_size.x)
 	var editor_h: float = _get_const_float("level.editor_platform_height", editor_platform_size.y)
 	editor_platform_size = Vector2(editor_w, editor_h)
@@ -295,11 +299,17 @@ func _add_border_walls():
 	# 扫描所有平台，确定上下边界（平台顶面）
 	var min_top: float = INF
 	var max_top: float = -INF
+	var min_left: float = INF
+	var max_right: float = -INF
 	for p in platforms.get_children():
 		if p and p is Node2D:
 			var pw: float = _get_platform_width(p as Node2D)
 			var ph: float = _get_platform_height(p as Node2D)
 			if pw > 0.0 and ph > 0.0:
+				var left_x: float = (p as Node2D).global_position.x - pw * 0.5
+				var right_x: float = (p as Node2D).global_position.x + pw * 0.5
+				min_left = min(min_left, left_x)
+				max_right = max(max_right, right_x)
 				var top_y: float = (p as Node2D).global_position.y - ph * 0.5
 				min_top = min(min_top, top_y)
 				max_top = max(max_top, top_y)
@@ -309,8 +319,8 @@ func _add_border_walls():
 	var y_bottom_top: float = max_top
 	var center_y: float = (y_bottom_top + y_top_top) * 0.5
 	var total_h: float = abs(y_top_top - y_bottom_top)
-	var left_x: float = 80.0
-	var right_x: float = w - 80.0
+	var left_x: float = min_left if min_left != INF else 80.0
+	var right_x: float = max_right if max_right != -INF else w - 80.0
 	var wall_w: float = 12.0
 	var half_w: float = wall_w * 0.5
 	var half_h: float = total_h * 0.5
@@ -365,6 +375,416 @@ func _add_exit_marker():
 	exit_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	exit_node.add_child(exit_sprite)
 
+func _ensure_map_background():
+	if map_bg_layer != null:
+		return
+	map_bg_layer = Node2D.new()
+	map_bg_layer.z_index = -100
+	add_child(map_bg_layer)
+	map_bg_rect = Sprite2D.new()
+	map_bg_rect.centered = false
+	map_bg_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	map_bg_layer.add_child(map_bg_rect)
+	var vp := get_viewport()
+	if vp and vp.has_signal("size_changed"):
+		vp.size_changed.connect(_on_viewport_size_changed)
+	_update_map_background_texture()
+
+func _on_viewport_size_changed():
+	_update_map_background_texture()
+
+func _update_map_background_texture():
+	if map_bg_rect == null:
+		return
+	var rect := _get_level_rect_or_viewport()
+	map_bg_rect.texture = _build_level_bg_texture(rect.size, level_seed)
+	map_bg_rect.position = rect.position
+
+func _get_level_rect_or_viewport() -> Rect2:
+	var min_x: float = INF
+	var max_x: float = -INF
+	var min_y: float = INF
+	var max_y: float = -INF
+	var layer_h: float = 80.0
+	if generator and generator.has_method("get") and generator.get("layer_height") != null:
+		layer_h = float(generator.get("layer_height"))
+	for p in platforms.get_children():
+		if p and p is Node2D:
+			var pw: float = _get_platform_width(p as Node2D)
+			var ph: float = _get_platform_height(p as Node2D)
+			if pw > 0.0 and ph > 0.0:
+				var cx: float = (p as Node2D).position.x
+				var cy: float = (p as Node2D).position.y
+				min_x = min(min_x, cx - pw * 0.5)
+				max_x = max(max_x, cx + pw * 0.5)
+				min_y = min(min_y, cy - ph * 0.5)
+				max_y = max(max_y, cy + ph * 0.5)
+	if min_x != INF and max_x != -INF:
+		if generator and generator.has_method("get"):
+			var layers_val2 = generator.get("layers")
+			var lh_val2 = generator.get("layer_height")
+			if layers_val2 != null and lh_val2 != null:
+				var expected_bottom: float = top_margin + float(layers_val2) * float(lh_val2)
+				max_y = max(max_y, expected_bottom)
+		var extra_top: float = top_margin
+		var extra_bottom: float = layer_h
+		var size := Vector2(max(max_x - min_x, 1.0), max(max_y - min_y + extra_top + extra_bottom, 1.0))
+		return Rect2(Vector2(min_x, min_y - extra_top), size)
+	if generator and generator.has_method("get"):
+		var w_val = generator.get("width")
+		var layers_val = generator.get("layers")
+		var lh_val = generator.get("layer_height")
+		if w_val != null and layers_val != null and lh_val != null:
+			var w: float = float(w_val)
+			var h: float = float(layers_val) * float(lh_val) + top_margin + float(lh_val)
+			return Rect2(Vector2.ZERO, Vector2(w, h))
+	var vp := get_viewport_rect()
+	return Rect2(Vector2.ZERO, vp.size)
+
+func _build_level_bg_texture(size: Vector2, seed: int) -> Texture2D:
+	var w := int(max(size.x, 1.0))
+	var h := int(max(size.y, 1.0))
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var wall_col := Color(0.15, 0.12, 0.1, 1.0)
+	img.fill(wall_col)
+	_draw_brick_arch(img, seed + 101)
+	var layer_h: int = 80
+	if generator and generator.has_method("get") and generator.get("layer_height") != null:
+		layer_h = int(generator.get("layer_height"))
+	var window_rects := _draw_window_slits(img, seed + 401, layer_h)
+	_draw_wall_candles(img, seed + 503, layer_h, window_rects)
+	return ImageTexture.create_from_image(img)
+
+func _draw_mountain_layer(img: Image, base_y: int, amp: int, col: Color, seed: int):
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var w := img.get_width()
+	var h := img.get_height()
+	var cur := float(base_y)
+	for x in range(w):
+		cur += rng.randf_range(-float(amp) * 0.2, float(amp) * 0.2)
+		cur = clamp(cur, float(base_y - amp), float(base_y + amp))
+		for y in range(int(cur), h):
+			img.set_pixel(x, y, col)
+
+func _draw_fog_band(img: Image, center_y: int, height: int, col: Color, seed: int):
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var w := img.get_width()
+	var h := img.get_height()
+	for x in range(w):
+		var jitter := rng.randi_range(-height / 4, height / 4)
+		var y0: int = int(clamp(center_y - height / 2 + jitter, 0, h - 1))
+		var y1: int = int(clamp(center_y + height / 2 + jitter, 0, h - 1))
+		for y in range(y0, y1):
+			var existing := img.get_pixel(x, y)
+			img.set_pixel(x, y, existing.lerp(col, col.a))
+
+func _draw_brick_arch(img: Image, seed: int):
+	var w := img.get_width()
+	var h := img.get_height()
+	var brick := Color(0.3, 0.22, 0.18, 1.0)
+	_fill_rect(img, 0, 0, w, h, brick)
+	var brick_h: int = 6
+	var brick_w: int = 14
+	for y in range(0, h, brick_h):
+		var offset: int = 0 if ((y / brick_h) % 2 == 0) else brick_w / 2
+		for x in range(-offset, w, brick_w):
+			_stroke_rect(img, x + 1, y + 1, brick_w - 2, brick_h - 2, Color(0.2, 0.15, 0.12, 1.0))
+
+func _draw_side_bricks(img: Image, seed: int):
+	var w := img.get_width()
+	var h := img.get_height()
+	var left_w: int = int(w * 0.22)
+	var right_x: int = w - left_w
+	var wall := Color(0.25, 0.18, 0.15, 1.0)
+	var dark := Color(0.18, 0.13, 0.1, 1.0)
+	_fill_rect(img, 0, int(h * 0.2), left_w, int(h * 0.8), wall)
+	_fill_rect(img, right_x, int(h * 0.2), left_w, int(h * 0.8), wall)
+	var brick_h: int = 12
+	var brick_w: int = 26
+	for y in range(int(h * 0.2), h, brick_h):
+		var offset: int = 0 if ((y / brick_h) % 2 == 0) else brick_w / 2
+		for x in range(-offset, left_w, brick_w):
+			_stroke_rect(img, x + 1, y + 1, brick_w - 2, brick_h - 2, dark)
+		for x in range(-offset, left_w, brick_w):
+			_stroke_rect(img, right_x + x + 1, y + 1, brick_w - 2, brick_h - 2, dark)
+
+func _draw_window_slits(img: Image, seed: int, layer_h: int) -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var w := img.get_width()
+	var h := img.get_height()
+	var rects: Array = []
+	var night := Color(0.08, 0.1, 0.16, 1.0)
+	var border := Color(0.06, 0.05, 0.04, 1.0)
+	var sill := Color(0.1, 0.08, 0.06, 1.0)
+	var window_w: int = 18
+	var window_h: int = 40
+	var per_row: int = max(3, int(w / 260))
+	var rows: int = max(int(h / layer_h), 1)
+	for r in range(rows):
+		var base_y: int = int(r * layer_h + 12)
+		var row_offset: int = (r % 2) * int(float(w) / float(per_row + 1) * 0.5)
+		for i in range(per_row):
+			var wx: int = int((i + 1) * float(w) / float(per_row + 1) - window_w * 0.5) + row_offset
+			wx += rng.randi_range(-8, 8)
+			wx = clamp(wx, 4, w - window_w - 4)
+			_draw_arch_window(img, wx, base_y, window_w, window_h, night, border, sill)
+			rects.append({"layer": r, "rect": Rect2i(wx - 2, base_y - 2, window_w + 4, window_h + 6)})
+	return rects
+
+func _draw_wall_candles(img: Image, seed: int, layer_h: int, window_rects: Array):
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var w := img.get_width()
+	var h := img.get_height()
+	var rows: int = max(int(h / layer_h), 1)
+	var candle_col := Color(0.2, 0.18, 0.16, 1.0)
+	var flame_col := Color(0.95, 0.85, 0.5, 1.0)
+	for r in range(rows):
+		var base_y: int = int(r * layer_h + 28)
+		var per_row: int = max(3, int(w / 360))
+		var row_offset: int = ((r + 1) % 2) * int(float(w) / float(per_row + 1) * 0.5)
+		var layer_rects: Array = []
+		for entry in window_rects:
+			if entry is Dictionary and int(entry.get("layer", -1)) == r and entry.get("rect") is Rect2i:
+				layer_rects.append(entry.get("rect"))
+		for i in range(per_row):
+			var wx: int = int((i + 1) * float(w) / float(per_row + 1) - 1) + row_offset
+			var cx := _find_clear_candle_x(wx, base_y, w, layer_rects)
+			if cx >= 0:
+				_draw_wall_candle(img, cx, base_y, candle_col, flame_col)
+			else:
+				var left_x: int = _find_clear_candle_x(16, base_y, w, layer_rects)
+				if left_x >= 0:
+					_draw_wall_candle(img, left_x, base_y, candle_col, flame_col)
+				var right_x: int = _find_clear_candle_x(w - 16, base_y, w, layer_rects)
+				if right_x >= 0 and right_x != left_x:
+					_draw_wall_candle(img, right_x, base_y, candle_col, flame_col)
+
+func _draw_wall_candle(img: Image, x: int, y: int, base_col: Color, flame_col: Color):
+	_fill_rect(img, x - 2, y, 5, 10, base_col)
+	_fill_rect(img, x - 7, y + 6, 7, 3, base_col)
+	var candle_count: int = 3
+	for i in range(candle_count):
+		var cx: int = x - 6 + i * 6
+		_fill_rect(img, cx, y - 2, 2, 6, Color(0.85, 0.8, 0.7, 1.0))
+		_plot(img, cx, y - 4, flame_col)
+		_plot(img, cx, y - 5, flame_col)
+		_draw_circle(img, cx, y - 4, 5, Color(0.9, 0.8, 0.5, 0.22))
+
+func _find_clear_candle_x(base_x: int, base_y: int, w: int, layer_rects: Array) -> int:
+	for shift in [0, -24, 24, -36, 36, -48, 48]:
+		var cx: int = clamp(base_x + shift, 12, w - 12)
+		var candle_rect := Rect2i(cx - 9, base_y - 6, 18, 22)
+		if not _rects_overlap_any(candle_rect, layer_rects):
+			return cx
+	return -1
+
+func _rects_overlap_any(rect: Rect2i, rects: Array) -> bool:
+	for r in rects:
+		if r is Rect2i and rect.intersects(r):
+			return true
+	return false
+
+func _draw_arch_window(img: Image, x: int, y: int, w: int, h: int, night: Color, border: Color, sill: Color):
+	var cx: int = x + w / 2
+	var r: int = w / 2
+	var cap_h: int = r
+	var base_y: int = y + h - 1
+	for yy in range(h):
+		var py: int = y + yy
+		if py < 0 or py >= img.get_height():
+			continue
+		var x0: int = x
+		var x1: int = x + w - 1
+		if yy < cap_h:
+			var dy: int = cap_h - yy
+			var dx_limit: int = int(sqrt(float(max(r * r - dy * dy, 0))))
+			x0 = max(cx - dx_limit, x)
+			x1 = min(cx + dx_limit, x + w - 1)
+		for px in range(x0, x1 + 1):
+			if px < 0 or px >= img.get_width():
+				continue
+			img.set_pixel(px, py, night)
+	_draw_arch_window_border(img, x, y, w, h, border)
+	_draw_window_mullion(img, x + w / 2 - 1, y + 4, 2, h - 8, border)
+	_draw_window_sill(img, x - 2, y + h, w + 4, 4, sill)
+
+func _draw_arch_window_border(img: Image, x: int, y: int, w: int, h: int, col: Color):
+	var cx: int = x + w / 2
+	var r: int = w / 2
+	var cap_h: int = r
+	for yy in range(h):
+		var py: int = y + yy
+		if py < 0 or py >= img.get_height():
+			continue
+		var x0: int = x
+		var x1: int = x + w - 1
+		if yy < cap_h:
+			var dy: int = cap_h - yy
+			var dx_limit: int = int(sqrt(float(max(r * r - dy * dy, 0))))
+			x0 = max(cx - dx_limit, x)
+			x1 = min(cx + dx_limit, x + w - 1)
+		if x0 >= 0 and x0 < img.get_width():
+			img.set_pixel(x0, py, col)
+		if x1 >= 0 and x1 < img.get_width():
+			img.set_pixel(x1, py, col)
+	for px in range(x, x + w):
+		var py: int = y + h - 1
+		if px >= 0 and px < img.get_width() and py >= 0 and py < img.get_height():
+			img.set_pixel(px, py, col)
+
+func _draw_window_mullion(img: Image, x: int, y: int, w: int, h: int, col: Color):
+	for yy in range(h):
+		var py: int = y + yy
+		if py < 0 or py >= img.get_height():
+			continue
+		for xx in range(w):
+			var px: int = x + xx
+			if px < 0 or px >= img.get_width():
+				continue
+			img.set_pixel(px, py, col)
+
+func _draw_window_sill(img: Image, x: int, y: int, w: int, h: int, col: Color):
+	for yy in range(h):
+		var py: int = y + yy
+		if py < 0 or py >= img.get_height():
+			continue
+		for xx in range(w):
+			var px: int = x + xx
+			if px < 0 or px >= img.get_width():
+				continue
+			img.set_pixel(px, py, col)
+
+func _draw_line(img: Image, x0: int, y0: int, x1: int, y1: int, col: Color):
+	var dx: int = abs(x1 - x0)
+	var dy: int = -abs(y1 - y0)
+	var sx: int = 1 if x0 < x1 else -1
+	var sy: int = 1 if y0 < y1 else -1
+	var err: int = dx + dy
+	var x: int = x0
+	var y: int = y0
+	while true:
+		_plot(img, x, y, col)
+		if x == x1 and y == y1:
+			break
+		var e2: int = 2 * err
+		if e2 >= dy:
+			err += dy
+			x += sx
+		if e2 <= dx:
+			err += dx
+			y += sy
+
+func _draw_castle_silhouette(img: Image, base_y: int, seed: int):
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var w := img.get_width()
+	var h := img.get_height()
+	var wall_col := Color(0.03, 0.03, 0.05, 1.0)
+	_fill_rect(img, 0, base_y, w, h - base_y, wall_col)
+	var tower_count: int = max(4, int(w / 180))
+	for i in range(tower_count):
+		var tw: int = rng.randi_range(60, 140)
+		var th: int = rng.randi_range(90, 220)
+		var x0: int = rng.randi_range(0, max(w - tw, 1))
+		var y0: int = int(clamp(base_y - th, 0, h - 1))
+		_fill_rect(img, x0, y0, tw, base_y - y0, wall_col)
+		var spire_w: int = rng.randi_range(6, 12)
+		var spire_h: int = rng.randi_range(26, 60)
+		var sx: int = x0 + int((tw - spire_w) * 0.5)
+		var sy: int = int(clamp(y0 - spire_h, 0, h - 1))
+		_fill_rect(img, sx, sy, spire_w, y0 - sy, wall_col)
+		for c in range(int(tw / 16)):
+			var cx: int = x0 + c * 16
+			_fill_rect(img, cx, y0 - 6, 8, 6, wall_col)
+
+func _draw_window_lights(img: Image, base_y: int, seed: int):
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var w := img.get_width()
+	var h := img.get_height()
+	var count: int = int(w / 8)
+	var col := Color(0.9, 0.75, 0.4, 0.85)
+	for i in range(count):
+		var wx: int = rng.randi_range(8, w - 12)
+		var wy: int = rng.randi_range(max(8, base_y - 220), max(9, base_y - 20))
+		var ww: int = rng.randi_range(4, 7)
+		var wh: int = rng.randi_range(6, 12)
+		_fill_rect(img, wx, wy, ww, wh, col)
+
+func _draw_bats(img: Image, seed: int):
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var w := img.get_width()
+	var h := img.get_height()
+	var col := Color(0.15, 0.16, 0.2, 0.9)
+	for i in range(8):
+		var x := rng.randi_range(40, w - 40)
+		var y := rng.randi_range(40, int(h * 0.45))
+		_plot(img, x, y, col)
+		_plot(img, x - 2, y - 1, col)
+		_plot(img, x - 4, y, col)
+		_plot(img, x + 2, y - 1, col)
+		_plot(img, x + 4, y, col)
+		_plot(img, x, y + 1, col)
+
+func _fill_rect(img: Image, x: int, y: int, w: int, h: int, col: Color):
+	var max_x: int = img.get_width()
+	var max_y: int = img.get_height()
+	for yy in range(h):
+		var py: int = y + yy
+		if py < 0 or py >= max_y:
+			continue
+		for xx in range(w):
+			var px: int = x + xx
+			if px < 0 or px >= max_x:
+				continue
+			img.set_pixel(px, py, col)
+
+func _stroke_rect(img: Image, x: int, y: int, w: int, h: int, col: Color):
+	for xx in range(w):
+		var px := x + xx
+		var py1 := y
+		var py2 := y + h - 1
+		if px >= 0 and px < img.get_width():
+			if py1 >= 0 and py1 < img.get_height():
+				img.set_pixel(px, py1, col)
+			if py2 >= 0 and py2 < img.get_height():
+				img.set_pixel(px, py2, col)
+	for yy in range(h):
+		var py := y + yy
+		var px1 := x
+		var px2 := x + w - 1
+		if py >= 0 and py < img.get_height():
+			if px1 >= 0 and px1 < img.get_width():
+				img.set_pixel(px1, py, col)
+			if px2 >= 0 and px2 < img.get_width():
+				img.set_pixel(px2, py, col)
+
+func _draw_circle(img: Image, cx: int, cy: int, r: int, col: Color):
+	var max_x: int = img.get_width()
+	var max_y: int = img.get_height()
+	var r2: int = r * r
+	for y in range(cy - r, cy + r + 1):
+		if y < 0 or y >= max_y:
+			continue
+		for x in range(cx - r, cx + r + 1):
+			if x < 0 or x >= max_x:
+				continue
+			var dx: int = x - cx
+			var dy: int = y - cy
+			if dx * dx + dy * dy <= r2:
+				var existing := img.get_pixel(x, y)
+				img.set_pixel(x, y, existing.lerp(col, col.a))
+
+func _plot(img: Image, x: int, y: int, col: Color):
+	if x < 0 or y < 0 or x >= img.get_width() or y >= img.get_height():
+		return
+	img.set_pixel(x, y, col)
+
 func _init_editor_overlay():
 	editor_cursor = Polygon2D.new()
 	editor_cursor.z_index = 20
@@ -372,6 +792,20 @@ func _init_editor_overlay():
 	add_child(editor_cursor)
 	editor_ui = CanvasLayer.new()
 	add_child(editor_ui)
+	editor_overlay = ColorRect.new()
+	editor_overlay.color = Color(0, 0, 0, 0.6)
+	editor_overlay.visible = false
+	editor_overlay.anchor_left = 0.0
+	editor_overlay.anchor_top = 0.0
+	editor_overlay.anchor_right = 1.0
+	editor_overlay.anchor_bottom = 1.0
+	editor_overlay.offset_left = 0
+	editor_overlay.offset_top = 0
+	editor_overlay.offset_right = 0
+	editor_overlay.offset_bottom = 0
+	editor_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	editor_ui.add_child(editor_overlay)
+	editor_ui.move_child(editor_overlay, 0)
 	editor_label = Label.new()
 	editor_label.position = Vector2(8, 8)
 	editor_label.add_theme_font_size_override("font_size", 12)
@@ -475,6 +909,8 @@ func _init_editor_overlay():
 	editor_exit_dialog.cancel_button_text = "不保存"
 	editor_exit_dialog.confirmed.connect(_on_editor_exit_save)
 	editor_exit_dialog.canceled.connect(_on_editor_exit_discard)
+	if editor_exit_dialog.has_signal("visibility_changed"):
+		editor_exit_dialog.visibility_changed.connect(_on_editor_popup_visibility_changed)
 	editor_ui.add_child(editor_exit_dialog)
 	editor_spawn_marker = Polygon2D.new()
 	editor_spawn_marker.z_index = 18
@@ -485,6 +921,10 @@ func _init_editor_overlay():
 	])
 	editor_spawn_marker.visible = false
 	add_child(editor_spawn_marker)
+
+func _on_editor_popup_visibility_changed():
+	if editor_overlay and editor_exit_dialog:
+		editor_overlay.visible = editor_exit_dialog.visible
 
 func _update_editor_label():
 	if editor_label == null:
