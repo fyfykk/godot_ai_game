@@ -1080,6 +1080,15 @@ func _draw_icon_art(img: Image, icon_key: String, ox: int, oy: int, s: int, rari
 		_draw_rect_px(img, ox, oy, s, 6, 6, 4, 4, blue)
 		_draw_rect_px(img, ox, oy, s, 7, 7, 2, 2, gold)
 		_draw_rect_px(img, ox, oy, s, 6, 3, 4, 1, gold)
+	elif kind == "roar":
+		_draw_ring_px(img, ox, oy, s, 8, 8, 6, gold)
+		_draw_ring_px(img, ox, oy, s, 8, 8, 4, dark)
+		_draw_ring_px(img, ox, oy, s, 8, 8, 3, gold)
+		_draw_rect_px(img, ox, oy, s, 6, 5, 1, 1, red)
+		_draw_rect_px(img, ox, oy, s, 9, 5, 1, 1, red)
+		_draw_rect_px(img, ox, oy, s, 7, 7, 2, 1, red)
+		_draw_rect_px(img, ox, oy, s, 5, 10, 6, 1, gold)
+		_draw_rect_px(img, ox, oy, s, 4, 11, 8, 1, dark)
 	elif kind == "blade":
 		_draw_rect_px(img, ox, oy, s, 5, 4, 6, 1, metal)
 		_draw_rect_px(img, ox, oy, s, 6, 5, 4, 5, metal)
@@ -1176,6 +1185,8 @@ func _icon_kind(key: String) -> String:
 		return "crest_warrior"
 	if key.find("magic_red") >= 0:
 		return "crest_mage"
+	if key.find("roar") >= 0 or key.find("龙吼") >= 0 or key.find("咆哮") >= 0:
+		return "roar"
 	if key.find("战士之徽") >= 0:
 		return "crest_warrior"
 	if key.find("法师之徽") >= 0:

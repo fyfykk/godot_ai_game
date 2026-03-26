@@ -3,6 +3,8 @@ extends Control
 var RarityScript := preload("res://scripts/data/Rarity.gd")
 var UIFontScript := preload("res://scripts/ui/UIFont.gd")
 var bg_rect: ColorRect = null
+var codex_scroller: ScrollContainer = null
+var codex_grid: GridContainer = null
 
 class GridIcon:
 	extends Control
@@ -72,9 +74,10 @@ func _ready():
 	back.pressed.connect(_on_back_pressed)
 	var sc := ScrollContainer.new()
 	add_child(sc)
-	sc.position = Vector2(40, 100)
+	codex_scroller = sc
 	sc.custom_minimum_size = Vector2(1200, 560)
 	var grid := GridContainer.new()
+	codex_grid = grid
 	grid.columns = 3
 	grid.custom_minimum_size = Vector2(1160, 540)
 	sc.add_child(grid)
@@ -131,6 +134,7 @@ func _ready():
 		right.add_child(eff)
 		hb.add_child(right)
 		grid.add_child(card)
+	_update_bg_size()
 	UIFontScript.apply_tree(self)
 
 func _notification(what):
@@ -143,6 +147,20 @@ func _update_bg_size():
 	var vp := get_viewport_rect().size
 	bg_rect.position = Vector2.ZERO
 	bg_rect.size = vp
+	if codex_scroller:
+		var target_w: float = codex_scroller.custom_minimum_size.x
+		var target_h: float = codex_scroller.custom_minimum_size.y
+		codex_scroller.anchor_left = 0.5
+		codex_scroller.anchor_right = 0.5
+		codex_scroller.anchor_top = 0.0
+		codex_scroller.anchor_bottom = 0.0
+		codex_scroller.offset_left = -target_w * 0.5
+		codex_scroller.offset_right = target_w * 0.5
+		codex_scroller.offset_top = 100.0
+		codex_scroller.offset_bottom = 100.0 + target_h
+		if codex_grid:
+			var inner_left: float = max(0.0, (codex_scroller.size.x - codex_grid.custom_minimum_size.x) * 0.5)
+			codex_grid.position = Vector2(inner_left, 0.0)
 
 func _on_back_pressed():
 	var root := get_tree().get_root().get_node_or_null("GameRoot")

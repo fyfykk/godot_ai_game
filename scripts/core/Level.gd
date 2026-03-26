@@ -43,7 +43,9 @@ var editor_holding_original_wall_sprite_pos: Vector2 = Vector2.ZERO
 var map_bg_layer: Node2D = null
 var map_bg_rect: Sprite2D = null
 var editor_overlay: ColorRect = null
+var editor_camera: Camera2D = null
 var LocalPathsScript := preload("res://scripts/data/LocalPaths.gd")
+var UIFontScript := preload("res://scripts/ui/UIFont.gd")
 static var texture_cache: Dictionary = {}
 
 func _get_const_float(key: String, default_val: float) -> float:
@@ -78,12 +80,15 @@ func _process(_delta):
 			editor_ui.visible = false
 		if editor_spawn_marker:
 			editor_spawn_marker.visible = false
+		if editor_camera:
+			editor_camera.clear_current()
 		return
 	if editor_ui:
 		editor_ui.visible = true
 	_update_editor_cursor()
 	_update_editor_label()
 	_editor_update_holding()
+	_update_editor_camera()
 	if editor_spawn_marker:
 		var show_spawn: bool = spawn_position.x > -9000.0 and spawn_position.y > -9000.0
 		editor_spawn_marker.visible = show_spawn
@@ -158,6 +163,24 @@ func set_level_seed(v: int):
 
 func set_editor_enabled(v: bool):
 	editor_enabled = v
+	if v:
+		if editor_camera == null:
+			editor_camera = Camera2D.new()
+			editor_camera.make_current()
+			add_child(editor_camera)
+		else:
+			editor_camera.make_current()
+	else:
+		if editor_camera:
+			editor_camera.clear_current()
+
+func _update_editor_camera():
+	if editor_camera == null:
+		return
+	var vp := get_viewport_rect().size
+	var base_y: float = vp.y * 0.5
+	var cx: float = _editor_get_level_center_x()
+	editor_camera.position = Vector2(cx, base_y)
 
 func set_editor_custom_index(v: int):
 	editor_custom_index = v
@@ -809,7 +832,7 @@ func _init_editor_overlay():
 	editor_ui = CanvasLayer.new()
 	add_child(editor_ui)
 	editor_overlay = ColorRect.new()
-	editor_overlay.color = Color(0, 0, 0, 0.6)
+	editor_overlay.color = Color(0, 0, 0, 0.65)
 	editor_overlay.visible = false
 	editor_overlay.anchor_left = 0.0
 	editor_overlay.anchor_top = 0.0
@@ -928,6 +951,7 @@ func _init_editor_overlay():
 	if editor_exit_dialog.has_signal("visibility_changed"):
 		editor_exit_dialog.visibility_changed.connect(_on_editor_popup_visibility_changed)
 	editor_ui.add_child(editor_exit_dialog)
+	call_deferred("_style_editor_exit_dialog")
 	editor_spawn_marker = Polygon2D.new()
 	editor_spawn_marker.z_index = 18
 	editor_spawn_marker.color = Color(0.3, 0.9, 0.45, 0.7)
@@ -941,6 +965,20 @@ func _init_editor_overlay():
 func _on_editor_popup_visibility_changed():
 	if editor_overlay and editor_exit_dialog:
 		editor_overlay.visible = editor_exit_dialog.visible
+
+func _style_editor_exit_dialog():
+	if editor_exit_dialog == null:
+		return
+	var theme := UIFontScript.theme()
+	if theme:
+		editor_exit_dialog.theme = theme
+		var panel := theme.get_stylebox("panel", "ConfirmationDialog")
+		if panel:
+			editor_exit_dialog.add_theme_stylebox_override("panel", panel)
+	var font := UIFontScript._get_font()
+	if font:
+		editor_exit_dialog.add_theme_font_override("title_font", font)
+	UIFontScript.apply_tree(editor_exit_dialog)
 
 func _update_editor_label():
 	if editor_label == null:
