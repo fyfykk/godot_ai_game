@@ -18,7 +18,7 @@ func _ready():
 	if roar_fx:
 		if roar_fx.get("life") != null:
 			roar_fx.life = life
-		roar_fx.z_index = 220
+		roar_fx.z_index = 141
 		roar_fx.visible = true
 		add_child(roar_fx)
 		var target_scale: float = max_radius * 0.8 / 64.0

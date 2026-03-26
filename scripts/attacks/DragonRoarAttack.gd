@@ -65,11 +65,12 @@ func _spawn_vfx(owner: Node2D):
 	if head and head.is_inside_tree():
 		head.add_child(fx)
 		fx.position = Vector2(0, 14)
-		fx.z_index = -100
+		fx.z_index = 140
 	else:
 		owner.get_tree().get_root().add_child(fx)
 		var origin: Vector2 = owner.call("get_roar_origin") as Vector2
 		fx.global_position = origin
+		fx.z_index = 140
 
 func upgrade(params: Dictionary):
 	if params == null:
