@@ -6,11 +6,12 @@ var records: Dictionary = {}
 
 func load_csv(path: String = "res://data/characters.csv"):
 	records.clear()
-	var packed_path := "res://data/packed/characters.json"
-	if _load_from_json(packed_path):
-		return
+	var packed_path := _derive_packed_path(path, "res://data/packed/characters.json")
 	if _load_from_csv(path):
 		_write_packed(packed_path)
+		return
+	if _load_from_json(packed_path):
+		return
 
 func _load_from_csv(path: String) -> bool:
 	var f := FileAccess.open(path, FileAccess.READ)
@@ -65,6 +66,12 @@ func _write_packed(path: String):
 	if f:
 		f.store_string(JSON.stringify(arr))
 		f.close()
+
+func _derive_packed_path(csv_path: String, fallback: String) -> String:
+	var base := csv_path.get_file().get_basename()
+	if base != "":
+		return "res://data/packed/%s.json" % base
+	return fallback
 
 func get_record(role: String) -> Dictionary:
 	return records.get(role, {})

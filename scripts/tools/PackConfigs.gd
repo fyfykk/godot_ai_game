@@ -14,6 +14,9 @@ func _pack_all():
 	_pack_gameplay_constants()
 	_pack_equipment()
 
+func run_pack():
+	_pack_all()
+
 func _pack_collectibles():
 	var f := FileAccess.open("res://data/collectibles.csv", FileAccess.READ)
 	if f == null:
@@ -63,7 +66,7 @@ func _pack_upgrades():
 		if line.strip_edges() == "":
 			continue
 		var cols := line.split(",", false)
-		if cols.size() < 10:
+		if cols.size() < 8:
 			continue
 		var rec: Dictionary = {
 			"id": cols[0],
@@ -71,11 +74,9 @@ func _pack_upgrades():
 			"target": cols[2],
 			"prop": cols[3],
 			"delta": float(cols[4]),
-			"limit_type": cols[5],
-			"limit_value": float(cols[6]),
-			"weight": float(cols[7]),
-			"rarity": cols[8],
-			"unlock": cols[9]
+			"weight": float(cols[5]),
+			"rarity": cols[6],
+			"unlock": cols[7]
 		}
 		arr.append(rec)
 	f.close()

@@ -105,6 +105,16 @@ attack,melee_range,28,px,scripts/attacks/MeleeAttack.gd
 attack,magic_damage,1,damage,scripts/attacks/MagicAreaAttack.gd
 attack,magic_interval,2.5,sec,scripts/attacks/MagicAreaAttack.gd
 attack,magic_radius,80,px,scripts/attacks/MagicAreaAttack.gd
+upgrade,max.bullet.damage,16,value,design
+upgrade,max.melee.damage,20,value,design
+upgrade,max.magic.damage,16,value,design
+upgrade,max.roar.damage,20,value,design
+upgrade,max.melee.range,160,px,design
+upgrade,max.magic.radius,220,px,design
+upgrade,min.bullet.interval,0.25,sec,design
+upgrade,min.melee.interval,0.35,sec,design
+upgrade,min.magic.interval,0.4,sec,design
+upgrade,min.roar.interval,0.5,sec,design
 characters,player_max_hp,100,hp,data/characters.csv
 characters,player_speed,180,px_s,data/characters.csv
 characters,enemy_max_hp,8,hp,data/characters.csv

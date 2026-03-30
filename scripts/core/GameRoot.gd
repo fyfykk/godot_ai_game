@@ -444,7 +444,7 @@ func add_collectible(_v: int, p: Node2D) -> bool:
 	if ui and ui.has_method("is_choice_active") and bool(ui.call("is_choice_active")):
 		return false
 	if ui and ui.has_method("show_collectible_choices"):
-		var opts: Array = _random_choices_with_probs(0.04, 0.15, 3)
+		var opts: Array = _random_choices_with_probs(0.01, 0.15, 3)
 		ui.call("show_collectible_choices", p, opts)
 		return true
 	return false
@@ -1530,6 +1530,11 @@ func get_upgrade_rarity(id: String) -> String:
 		return "blue"
 	return String(upg_config.get_value(id, "rarity", "blue"))
 
+func get_upgrade_record(id: String) -> Dictionary:
+	if upg_config == null:
+		return {}
+	return upg_config.get_item(id)
+
 func _player_has_target(p: Node2D, target: String) -> bool:
 	if p == null:
 		return false
@@ -1612,9 +1617,7 @@ func _is_upgrade_capped(p: Node2D, id: String) -> bool:
 		return false
 	var target := String(rec.get("target", "none"))
 	var prop := String(rec.get("prop", "none"))
-	var limit_type := String(rec.get("limit_type", "none"))
-	var limit_value := float(rec.get("limit_value", 0.0))
-	if target == "none" or prop == "none" or limit_type == "none":
+	if target == "none" or prop == "none":
 		return false
 	if not _player_has_target(p, target):
 		return true
@@ -1625,11 +1628,23 @@ func _is_upgrade_capped(p: Node2D, id: String) -> bool:
 	if cur == null:
 		return false
 	var cur_f: float = float(cur)
-	if limit_type == "max":
-		return cur_f >= limit_value
-	elif limit_type == "min":
-		return cur_f <= limit_value
+	if prop == "interval":
+		var min_cap := _get_upgrade_cap_min(target, prop)
+		if min_cap >= 0.0:
+			return cur_f <= min_cap
+		return false
+	var max_cap := _get_upgrade_cap_max(target, prop)
+	if max_cap >= 0.0:
+		return cur_f >= max_cap
 	return false
+
+func _get_upgrade_cap_max(target: String, prop: String) -> float:
+	var key := "upgrade.max.%s.%s" % [target, prop]
+	return get_const_float(key, -1.0)
+
+func _get_upgrade_cap_min(target: String, prop: String) -> float:
+	var key := "upgrade.min.%s.%s" % [target, prop]
+	return get_const_float(key, -1.0)
 
 func get_weighted_upgrade_choices(p: Node2D, n: int = 3) -> Array:
 	var rng := RandomNumberGenerator.new()

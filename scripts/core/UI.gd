@@ -848,6 +848,11 @@ func show_upgrade_choices(p: Node2D) -> bool:
 		choice_options = root.call("get_weighted_upgrade_choices", p, 3)
 	else:
 		choice_options = _generate_upgrade_choices()
+	if choice_options == null or choice_options.size() == 0:
+		choice_player = null
+		choice_mode = "upgrade"
+		choice_options = []
+		return false
 	for i in range(choice_buttons.size()):
 		if i < choice_options.size():
 			var name_txt := _choice_name(choice_options[i])

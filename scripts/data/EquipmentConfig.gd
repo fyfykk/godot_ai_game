@@ -10,11 +10,11 @@ func _ready():
 
 func load_equipment_data():
     equipment_data.clear()
-    if _should_use_packed(EQUIPMENT_CSV_PATH, EQUIPMENT_PACKED_PATH):
-        if _load_from_json(EQUIPMENT_PACKED_PATH):
-            return
+    var packed_path := _derive_packed_path(EQUIPMENT_CSV_PATH, EQUIPMENT_PACKED_PATH)
     if _load_from_csv(EQUIPMENT_CSV_PATH):
-        _write_packed(EQUIPMENT_PACKED_PATH)
+        _write_packed(packed_path)
+        return
+    if _load_from_json(packed_path):
         return
     print("Error: Could not open equipment data.")
 
@@ -63,6 +63,12 @@ func _write_packed(path: String):
     if f:
         f.store_string(JSON.stringify(arr))
         f.close()
+
+func _derive_packed_path(csv_path: String, fallback: String) -> String:
+    var base := csv_path.get_file().get_basename()
+    if base != "":
+        return "res://data/packed/%s.json" % base
+    return fallback
 
 func _should_use_packed(csv_path: String, packed_path: String) -> bool:
     if not FileAccess.file_exists(packed_path):

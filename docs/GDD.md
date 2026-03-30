@@ -12,6 +12,8 @@
 - 敌人交互：关闭的门会阻挡敌人攻击玩家
 - 敌人攻击距离排序：僵尸最短、恶魔中等、吸血鬼最长
 - 敌人生成上限调整为 20
+- 配置加载规则：优先读取 data/*.csv；仅当 CSV 不存在时才读取 data/packed/*.json
+- packed 路径由 CSV 文件名推导为 data/packed/<csv文件名>.json
 
 ## 收藏品
 - 稀有度：红色
@@ -80,6 +82,8 @@
 **相关升级 (Upgrades)**:
 - `bullet_damage`: 子弹伤害 +1
 - `bullet_interval`: 子弹攻速 + (间隔 -0.1)
+- 强化上限统一由 `data/gameplay_constants.csv` 的 `upgrade.min/upgrade.max` 配置控制
+- 稀有度权重在 `data/upgrades.csv` 的 `weight` 字段调整
 
 **相关收藏品 (Collectibles)**:
 - **伤害 (damage)**:

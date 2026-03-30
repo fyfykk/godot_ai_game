@@ -244,18 +244,18 @@ func _scale_enemy_stats(e, ratio: float):
 	if e.has_method("set"):
 		if e.get("max_hp") != null:
 			var base_max: int = int(e.get("max_hp"))
-			var mult: float = 1.0 + 2.0 * ratio
+			var mult: float = 1.0 + 2.4 * ratio
 			var new_max: int = int(round(float(base_max) * mult))
 			e.set("max_hp", new_max)
 			if e.get("hp") != null:
 				e.set("hp", new_max)
 		if e.get("damage") != null:
 			var base_dmg: int = int(e.get("damage"))
-			var new_dmg: int = int(round(float(base_dmg) * (1.0 + 0.6 * ratio)))
+			var new_dmg: int = int(round(float(base_dmg) * (1.0 + 0.8 * ratio)))
 			e.set("damage", max(new_dmg, 1))
 		if e.get("speed") != null:
 			var base_spd: float = float(e.get("speed"))
-			e.set("speed", base_spd * (1.0 + 0.15 * ratio))
+			e.set("speed", base_spd * (1.0 + 0.2 * ratio))
 
 func _spawn_boss():
 	boss_spawned = true

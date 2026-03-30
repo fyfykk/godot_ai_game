@@ -8,11 +8,15 @@ var by_id: Dictionary = {}
 func load_csv(path: String = "res://data/upgrades.csv"):
 	items.clear()
 	by_id.clear()
-	var packed_path := "res://data/packed/upgrades.json"
-	if _load_from_json(packed_path):
-		return
+	var packed_path := _derive_packed_path(path, "res://data/packed/upgrades.json")
 	if _load_from_csv(path):
 		_write_packed(packed_path)
+		return
+	if _load_from_json(packed_path):
+		if _is_upgrade_packed_legacy():
+			items.clear()
+			by_id.clear()
+		return
 
 func _load_from_csv(path: String) -> bool:
 	var f := FileAccess.open(path, FileAccess.READ)
@@ -24,7 +28,7 @@ func _load_from_csv(path: String) -> bool:
 		if line.strip_edges() == "":
 			continue
 		var cols := line.split(",")
-		if cols.size() < 10:
+		if cols.size() < 8:
 			continue
 		var id := cols[0]
 		var rec: Dictionary = {
@@ -33,11 +37,9 @@ func _load_from_csv(path: String) -> bool:
 			"target": cols[2],
 			"prop": cols[3],
 			"delta": float(cols[4]),
-			"limit_type": cols[5],
-			"limit_value": float(cols[6]),
-			"weight": float(cols[7]),
-			"rarity": cols[8],
-			"unlock": cols[9]
+			"weight": float(cols[5]),
+			"rarity": cols[6],
+			"unlock": cols[7]
 		}
 		items.append(rec)
 		by_id[id] = rec
@@ -56,9 +58,25 @@ func _load_from_json(path: String) -> bool:
 			if rec_i is Dictionary:
 				var rec: Dictionary = rec_i
 				var id := String(rec.get("id", ""))
+				if not rec.has("weight"):
+					rec["weight"] = 1.0
+				if not rec.has("rarity"):
+					rec["rarity"] = "blue"
+				if not rec.has("unlock"):
+					rec["unlock"] = "none"
 				items.append(rec)
 				by_id[id] = rec
 	return items.size() > 0
+
+func _is_upgrade_packed_legacy() -> bool:
+	for rec_i in items:
+		if rec_i is Dictionary:
+			var rec: Dictionary = rec_i
+			if rec.has("limit_type") or rec.has("limit_value"):
+				return true
+			if not rec.has("weight") or not rec.has("rarity") or not rec.has("unlock"):
+				return true
+	return false
 
 func _write_packed(path: String):
 	var dir := DirAccess.open("res://")
@@ -68,6 +86,12 @@ func _write_packed(path: String):
 	if f:
 		f.store_string(JSON.stringify(items))
 		f.close()
+
+func _derive_packed_path(csv_path: String, fallback: String) -> String:
+	var base := csv_path.get_file().get_basename()
+	if base != "":
+		return "res://data/packed/%s.json" % base
+	return fallback
 
 func get_item(id: String) -> Dictionary:
 	return by_id.get(id, {})

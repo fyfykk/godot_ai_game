@@ -6,12 +6,12 @@ var by_id: Dictionary = {}
 func load_csv(path: String = "res://data/collectibles.csv"):
 	items.clear()
 	by_id.clear()
-	var packed_path := "res://data/packed/collectibles.json"
-	if _should_use_packed(path, packed_path):
-		if _load_from_json(packed_path):
-			return
+	var packed_path := _derive_packed_path(path, "res://data/packed/collectibles.json")
 	if _load_from_csv(path):
 		_write_packed(packed_path)
+		return
+	if _load_from_json(packed_path):
+		return
 
 func _load_from_csv(path: String) -> bool:
 	var f := FileAccess.open(path, FileAccess.READ)
@@ -83,6 +83,12 @@ func _load_from_json(path: String) -> bool:
 				items.append(rec)
 				by_id[String(rec.get("id", ""))] = rec
 	return items.size() > 0
+
+func _derive_packed_path(csv_path: String, fallback: String) -> String:
+	var base := csv_path.get_file().get_basename()
+	if base != "":
+		return "res://data/packed/%s.json" % base
+	return fallback
 
 func _should_use_packed(csv_path: String, packed_path: String) -> bool:
 	if not FileAccess.file_exists(packed_path):

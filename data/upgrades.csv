@@ -1,14 +1,34 @@
-id,name,target,prop,delta,limit_type,limit_value,weight,rarity,unlock
-bullet_damage,子弹伤害 +1,bullet,damage,1,max,10,100,blue,none
-bullet_interval,子弹攻速 +,bullet,interval,-0.1,min,0.3,100,blue,none
-melee_damage,近战伤害 +1,melee,damage,1,max,12,100,blue,none
-melee_interval,近战冷却 -,melee,interval,-0.1,min,0.4,100,blue,none
-melee_range,近战范围 +,melee,range,4,max,120,100,blue,none
-magic_damage,魔法伤害 +1,magic,damage,1,max,10,100,blue,none
-magic_interval,魔法冷却 -,magic,interval,-0.1,min,0.5,100,blue,none
-magic_radius,魔法范围 +,magic,radius,8,max,160,100,blue,none
-roar_damage,龙咆哮伤害 +1,roar,damage,1,max,12,100,blue,none
-roar_interval,龙咆哮冷却 -,roar,interval,-0.15,min,0.6,100,blue,none
-attack_melee,解锁近战攻击,none,none,0,none,0,10,epic,attack_melee
-attack_magic,解锁范围魔法,none,none,0,none,0,10,epic,attack_magic
-attack_roar,解锁龙咆哮,none,none,0,none,0,10,epic,attack_roar
+id,name,target,prop,delta,weight,rarity,unlock
+bullet_damage,子弹伤害 +1,bullet,damage,1,100,blue,none
+bullet_interval,子弹攻速 +,bullet,interval,-0.1,100,blue,none
+melee_damage,近战伤害 +1,melee,damage,1,100,blue,none
+melee_interval,近战冷却 -,melee,interval,-0.1,100,blue,none
+melee_range,近战范围 +,melee,range,4,100,blue,none
+magic_damage,魔法伤害 +1,magic,damage,1,100,blue,none
+magic_interval,魔法冷却 -,magic,interval,-0.1,100,blue,none
+magic_radius,魔法范围 +,magic,radius,8,100,blue,none
+roar_damage,龙咆哮伤害 +1,roar,damage,1,100,blue,none
+roar_interval,龙咆哮冷却 -,roar,interval,-0.15,100,blue,none
+bullet_damage_epic,子弹伤害 +2,bullet,damage,2,18,epic,none
+bullet_interval_epic,子弹攻速 ++,bullet,interval,-0.15,18,epic,none
+melee_damage_epic,近战伤害 +2,melee,damage,2,18,epic,none
+melee_interval_epic,近战冷却 --,melee,interval,-0.15,18,epic,none
+melee_range_epic,近战范围 ++,melee,range,8,18,epic,none
+magic_damage_epic,魔法伤害 +2,magic,damage,2,18,epic,none
+magic_interval_epic,魔法冷却 --,magic,interval,-0.15,18,epic,none
+magic_radius_epic,魔法范围 ++,magic,radius,14,18,epic,none
+roar_damage_epic,龙咆哮伤害 +2,roar,damage,2,18,epic,none
+roar_interval_epic,龙咆哮冷却 --,roar,interval,-0.2,18,epic,none
+bullet_damage_red,子弹伤害 +3,bullet,damage,3,4,red,none
+bullet_interval_red,子弹攻速 +++,bullet,interval,-0.2,4,red,none
+melee_damage_red,近战伤害 +3,melee,damage,3,4,red,none
+melee_interval_red,近战冷却 ---,melee,interval,-0.2,4,red,none
+melee_range_red,近战范围 +++,melee,range,12,4,red,none
+magic_damage_red,魔法伤害 +3,magic,damage,3,4,red,none
+magic_interval_red,魔法冷却 ---,magic,interval,-0.2,4,red,none
+magic_radius_red,魔法范围 +++,magic,radius,20,4,red,none
+roar_damage_red,龙咆哮伤害 +3,roar,damage,3,4,red,none
+roar_interval_red,龙咆哮冷却 ---,roar,interval,-0.25,4,red,none
+attack_melee,解锁近战攻击,none,none,0,4,epic,attack_melee
+attack_magic,解锁范围魔法,none,none,0,4,epic,attack_magic
+attack_roar,解锁龙咆哮,none,none,0,4,epic,attack_roar

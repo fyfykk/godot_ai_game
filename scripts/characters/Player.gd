@@ -262,14 +262,55 @@ func apply_pickup(kind: String, amount: int) -> bool:
 		return _var_show_choice()
 	if kind == "roar_damage" or kind == "roar_interval":
 		return _var_show_choice()
+	var root3 := get_tree().get_root().get_node_or_null("GameRoot")
+	if root3 and root3.has_method("get_upgrade_record"):
+		var rec: Dictionary = root3.call("get_upgrade_record", kind)
+		if rec != null and rec.size() > 0:
+			return _var_show_choice()
 	return true
 func _var_show_choice() -> bool:
 	var root := get_tree().get_root().get_node_or_null("GameRoot")
 	if root and root.has_method("request_upgrade_choice"):
-		return bool(root.call("request_upgrade_choice", self))
+		var opened: bool = bool(root.call("request_upgrade_choice", self))
+		if not opened:
+			return false
+		var ui := root.get_node_or_null("UI")
+		if ui and ui.has_method("is_choice_active"):
+			return bool(ui.call("is_choice_active"))
+		return false
 	return false
 
 func apply_upgrade_kind(k: String):
+	var root_cfg := get_tree().get_root().get_node_or_null("GameRoot")
+	if root_cfg and root_cfg.has_method("get_upgrade_record"):
+		var rec: Dictionary = root_cfg.call("get_upgrade_record", k)
+		if rec != null and rec.size() > 0:
+			var unlock_key := String(rec.get("unlock", "none"))
+			var target := String(rec.get("target", "none"))
+			var prop := String(rec.get("prop", "none"))
+			var delta := float(rec.get("delta", 0.0))
+			if unlock_key == "none" and target != "none" and prop != "none":
+				var mod = _get_attack_module_for_target(target)
+				if mod:
+					var cur = mod.get(prop)
+					if cur != null:
+						var next_val := float(cur) + delta
+						var cap_key := ""
+						if prop == "interval":
+							cap_key = "upgrade.min.%s.%s" % [target, prop]
+							var min_cap := float(root_cfg.call("get_const_float", cap_key, -1.0))
+							if min_cap >= 0.0:
+								next_val = max(next_val, min_cap)
+						else:
+							cap_key = "upgrade.max.%s.%s" % [target, prop]
+							var max_cap := float(root_cfg.call("get_const_float", cap_key, -1.0))
+							if max_cap >= 0.0:
+								next_val = min(next_val, max_cap)
+						if prop == "damage":
+							mod.upgrade({prop: int(round(next_val))})
+						else:
+							mod.upgrade({prop: float(next_val)})
+						return
 	if k == "bullet_damage":
 		for m in attack_modules:
 			if m and m.has_method("get_display_name") and m.get_display_name() == "子弹攻击":
@@ -393,6 +434,16 @@ func apply_upgrade_kind(k: String):
 				if cur_i != null:
 					m.upgrade({"interval": max(float(cur_i) - 0.15, 0.6)})
 				return
+
+func _get_attack_module_for_target(target: String):
+	var name_map := {"bullet": "子弹攻击", "melee": "近战攻击", "magic": "范围魔法", "roar": "龙咆哮"}
+	var name := String(name_map.get(target, ""))
+	if name == "":
+		return null
+	for m in attack_modules:
+		if m and m.has_method("get_display_name") and m.get_display_name() == name:
+			return m
+	return null
 
 func _ensure_roar_head():
 	if roar_head != null:
