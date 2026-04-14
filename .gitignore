@@ -38,3 +38,6 @@ base_maps.json
 server.crt
 server.key
 server.pfx
+
+# Local Netlify folder
+.netlify

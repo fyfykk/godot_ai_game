@@ -26,9 +26,15 @@ if not exist "%KEY%" (
 netsh advfirewall firewall add rule name="ai_game_web_8443" dir=in action=allow protocol=TCP localport=%PORT% >nul 2>&1
 if exist "%ROOT%\build\web_server.pid" del "%ROOT%\build\web_server.pid"
 powershell -NoProfile -Command "$argsList = @('scripts/tools/https_server.py','--dir','build/web','--cert','%CERT%','--key','%KEY%','--port','%PORT%'); $p = Start-Process -FilePath python -ArgumentList $argsList -WorkingDirectory '%ROOT%' -RedirectStandardOutput '%LOG_OUT%' -RedirectStandardError '%LOG_ERR%' -PassThru; $p.Id | Set-Content -Path '%ROOT%\build\web_server.pid' -Encoding ascii"
-powershell -NoProfile -Command "Start-Sleep -Milliseconds 500; if (Get-NetTCPConnection -State Listen -LocalPort %PORT% -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+powershell -NoProfile -Command "$ok=$false; for($i=0;$i -lt 20;$i++){ Start-Sleep -Milliseconds 250; if (Get-NetTCPConnection -State Listen -LocalPort %PORT% -ErrorAction SilentlyContinue) { $ok=$true; break } }; if($ok){ exit 0 } else { exit 1 }"
 if errorlevel 1 (
-  echo Server failed to start. See %LOG_OUT% and %LOG_ERR%
+  set PID=
+  if exist "%ROOT%\build\web_server.pid" (
+    for /f "usebackq delims=" %%p in ("%ROOT%\build\web_server.pid") do set PID=%%p
+  )
+  echo Server failed to start within timeout. See %LOG_OUT% and %LOG_ERR%
+  if not "%PID%"=="" echo Captured PID: %PID%
+  if not "%PID%"=="" powershell -NoProfile -Command "if (Get-Process -Id %PID% -ErrorAction SilentlyContinue) { Write-Output 'Process status: running' } else { Write-Output 'Process status: exited' }"
   exit /b 1
 )
 echo https://localhost:%PORT%/

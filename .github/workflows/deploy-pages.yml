@@ -1,0 +1,82 @@
+name: Deploy Web To Cloudflare Pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/**"
+      - "scenes/**"
+      - "data/**"
+      - "project.godot"
+      - "build_web.bat"
+      - ".github/workflows/deploy-pages.yml"
+
+jobs:
+  deploy:
+    runs-on: windows-latest
+    env:
+      GODOT_VERSION: 4.6.1
+      CF_PAGES_PROJECT: ${{ secrets.CF_PAGES_PROJECT }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare export_presets.cfg from secret
+        shell: pwsh
+        run: |
+          if ("${{ secrets.EXPORT_PRESETS_B64 }}" -eq "") {
+            Write-Error "Missing secret EXPORT_PRESETS_B64 (base64 of export_presets.cfg)."
+            exit 1
+          }
+          [IO.File]::WriteAllBytes("export_presets.cfg", [Convert]::FromBase64String("${{ secrets.EXPORT_PRESETS_B64 }}"))
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate required Cloudflare secrets
+        shell: pwsh
+        run: |
+          if ("$env:CF_PAGES_PROJECT" -eq "") { throw "Missing secret CF_PAGES_PROJECT" }
+          if ("$env:CLOUDFLARE_API_TOKEN" -eq "") { throw "Missing secret CLOUDFLARE_API_TOKEN" }
+          if ("$env:CLOUDFLARE_ACCOUNT_ID" -eq "") { throw "Missing secret CLOUDFLARE_ACCOUNT_ID" }
+
+      - name: Download Godot and export templates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $godotZip = "Godot_v$env:GODOT_VERSION-stable_win64.exe.zip"
+          $godotUrl = "https://github.com/godotengine/godot/releases/download/$env:GODOT_VERSION-stable/$godotZip"
+          Invoke-WebRequest -Uri $godotUrl -OutFile "godot.zip"
+          Expand-Archive -Path "godot.zip" -DestinationPath "godot-bin" -Force
+          $godotExe = Get-ChildItem -Path "godot-bin" -Filter "*.exe" -Recurse | Select-Object -First 1
+          if (-not $godotExe) { throw "Godot exe not found after unzip." }
+          "GODOT_EXE=$($godotExe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $tpzUrl = "https://github.com/godotengine/godot/releases/download/$env:GODOT_VERSION-stable/Godot_v$env:GODOT_VERSION-stable_export_templates.tpz"
+          Invoke-WebRequest -Uri $tpzUrl -OutFile "templates.zip"
+          $tplDir = Join-Path $env:APPDATA ("Godot\export_templates\{0}.stable" -f $env:GODOT_VERSION)
+          New-Item -ItemType Directory -Path $tplDir -Force | Out-Null
+          Expand-Archive -Path "templates.zip" -DestinationPath $tplDir -Force
+          if (Test-Path (Join-Path $tplDir "templates")) {
+            Copy-Item (Join-Path $tplDir "templates\*") $tplDir -Recurse -Force
+          }
+
+      - name: Build web export
+        shell: cmd
+        run: build_web.bat
+
+      - name: Deploy to Cloudflare Pages
+        shell: cmd
+        run: npx --yes wrangler pages deploy build/web --project-name %CF_PAGES_PROJECT%

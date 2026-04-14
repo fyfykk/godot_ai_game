@@ -1,0 +1,87 @@
+name: Deploy Web To GitHub Pages (No External Token)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/**"
+      - "scenes/**"
+      - "data/**"
+      - "project.godot"
+      - "build_web.bat"
+      - ".github/workflows/deploy-github-pages.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "github-pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      GODOT_VERSION: 4.6.1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare export_presets.cfg
+        shell: pwsh
+        run: |
+          if (Test-Path "export_presets.cfg") {
+            Write-Output "Using export_presets.cfg from repository."
+            exit 0
+          }
+          if ("${{ secrets.EXPORT_PRESETS_B64 }}" -eq "") {
+            Write-Error "Missing export_presets.cfg. Commit it or set EXPORT_PRESETS_B64 secret."
+            exit 1
+          }
+          [IO.File]::WriteAllBytes("export_presets.cfg", [Convert]::FromBase64String("${{ secrets.EXPORT_PRESETS_B64 }}"))
+
+      - name: Download Godot and export templates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $godotZip = "Godot_v$env:GODOT_VERSION-stable_win64.exe.zip"
+          $godotUrl = "https://github.com/godotengine/godot/releases/download/$env:GODOT_VERSION-stable/$godotZip"
+          Invoke-WebRequest -Uri $godotUrl -OutFile "godot.zip"
+          Expand-Archive -Path "godot.zip" -DestinationPath "godot-bin" -Force
+          $godotExe = Get-ChildItem -Path "godot-bin" -Filter "*.exe" -Recurse | Select-Object -First 1
+          if (-not $godotExe) { throw "Godot exe not found after unzip." }
+          "GODOT_EXE=$($godotExe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $tpzUrl = "https://github.com/godotengine/godot/releases/download/$env:GODOT_VERSION-stable/Godot_v$env:GODOT_VERSION-stable_export_templates.tpz"
+          Invoke-WebRequest -Uri $tpzUrl -OutFile "templates.zip"
+          $tplDir = Join-Path $env:APPDATA ("Godot\export_templates\{0}.stable" -f $env:GODOT_VERSION)
+          New-Item -ItemType Directory -Path $tplDir -Force | Out-Null
+          Expand-Archive -Path "templates.zip" -DestinationPath $tplDir -Force
+          if (Test-Path (Join-Path $tplDir "templates")) {
+            Copy-Item (Join-Path $tplDir "templates\*") $tplDir -Recurse -Force
+          }
+
+      - name: Build web export
+        shell: cmd
+        run: build_web.bat
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
